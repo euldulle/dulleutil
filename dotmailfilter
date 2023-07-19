@@ -1,0 +1,248 @@
+MAILDIR="/home/fmeyer/mail"
+BOGOFILTER="/usr/bin/bogofilter"
+BOGOFILTER_DIR="/home/fmeyer/.bogofilter"
+LOGFILE="/home/fmeyer/tmp/balfm"
+#SENDMAIL="/sbin/exim4"
+SENDMAIL="/usr/bin/msmtp"
+COMSAT=no
+HOME="/home/fmeyer"
+LANG="fr_FR.UTF-8"
+TRAP="/home/fmeyer/bin/log >/home/fmeyer/tmp/logtrap 2>&1"
+LOGABSTRACT=no
+MAILDROP_DEBUG=1
+LOCKFILE=/home/fmeyer/tmp/mailfilter.lock
+logfile "/home/fmeyer/tmp/mailfilter"
+
+xfilter "/usr/bin/bogofilter -p -u -e"
+
+xfilter "/home/fmeyer/bin/parsemail.py"
+
+if ( /^From:.*hui.sante/ )
+{
+    to "/dev/null"
+}
+
+if ( /^From:.*acie.en.ligne/ )
+{
+    to "/dev/null"
+}
+
+if ( /^From:.*auquotid/ )
+{
+    to "/dev/null"
+}
+
+if ( /^X-MailScanner:.*infected/ )
+{
+    to "$MAILDIR/spam"
+}
+
+if ( /^List-Id:.*jefyco-ufc/ )
+{
+    to "/dev/null"
+}
+
+if ( /^From:.*francephi.*/ )
+{
+    to "/dev/null"
+}
+
+if ( /^From:.*duke.abbaddon.*/ )
+{
+    to "/dev/null"
+}
+
+if ( /^From:.*@.*.ru$/ )
+{
+    to    "spam-bogofilter"
+}
+
+if ( /^X-Bogosity: Spam/ || /^X-Bogosity: Yes/ )
+{
+    to "$MAILDIR/spam-bogofilter"
+}
+
+if ( /^X-Bogosity: Unsure, tests=bogofilter/ )
+{
+    to "$MAILDIR/spam-unsure"
+}
+
+if ( /^To:.*fripon.org/||/^From:.*fripon.org/ )
+{
+    to "$MAILDIR/fripon"
+}
+
+if ( /^List-Id:.*lanoccult/ )
+{
+    to "$MAILDIR/planoccult"
+}
+
+if ( /^To:.*frequency-time-seminar/ || /^cc:.*frequency-time-seminar/ )
+{
+    to "$MAILDIR/efts"
+}
+
+if ( /^To:.*time-nuts/ )
+{
+    to "$MAILDIR/time-nuts"
+}
+
+if ( /^To:.*mbi@dulle.fr/ )
+{
+    to "$MAILDIR/mbi"
+}
+
+if ( /^To:.*credmut@dulle.fr/ )
+{
+    to "$MAILDIR/credmut"
+}
+
+if ( /^To:.*@dulle.fr/ )
+{
+    to "$MAILDIR/dulleperso"
+}
+
+if ( /^To:.*dulle@free.fr/ )
+{
+    to "$MAILDIR/dulleperso"
+}
+
+if ( /^Mailing-List:.*aude-L*/ )
+{
+    to "$MAILDIR/aude-L"
+}
+
+if ( /^Sender:.*LEAPSECS*/ )
+{
+    to "$MAILDIR/leapsec"
+}
+
+if ( /^Mailing-List:.*CielNoir*/ )
+{
+    to "$MAILDIR/cielnoir"
+}
+
+if ( /^Mailing-List:.*lin4astro*/ )
+{
+    to "$MAILDIR/lin4astro"
+}
+
+if ( /^Mailing-List:.*list.twirg.yahoogroups.com*/ )
+{
+    to "$MAILDIR/twirg"
+}
+
+if ( /^From:.*mcmt32|^Subject:.*mcmt32:svn/ || /^Subject:.*mcmt32:svn/ )
+{
+    to "$MAILDIR/mcmt32svn"
+}
+
+if ( /^List-Id:.*suplibre.groupes.renater.fr/ )
+{
+    to "$MAILDIR/suplibre"
+}
+
+if ( /^List-Id:.*screen-users/ )
+{
+    to "$MAILDIR/screen"
+}
+
+if ( /^To:.*etalonnages@obs-besancon.fr/||/^To:.*contact@ltfb.fr/ || \
+     /^Cc:.*etalonnages@obs-besancon.fr/||/^Cc:.*contact@ltfb.fr/)
+{
+    to "$MAILDIR/etalonnages"
+}
+
+if ( /^List-Id:.*diffusion.sympa.utinam.cnrs.fr/ )
+{
+    to "$MAILDIR/diffusion"
+}
+
+if ( /^From:.*celine.*obs-besancon.fr/ )
+{
+    to "$MAILDIR/cr2"
+}
+
+if ( /^From:.*ups.*ltfb.lan/ )
+{
+    to "$MAILDIR/onduleurs"
+}
+
+if ( /^From:.*farnell.*/ )
+{
+    to "$MAILDIR/farnell"
+}
+
+if ( /^List-Id:.*teqc/ )
+{
+    to "$MAILDIR/teqc"
+}
+
+if ( /^To:.*gps-moto.obspm/ || /^From:.*gtr50/ || /^From:.*GTR50/ || \
+     /^Subject:.*GTR50.*DEVICE/ || /^To:.*gpsmaster/ || /^To:.*raccord@.*/ || /^From:.*root@ltfb/)
+{
+    to "$MAILDIR/gpsmaster"
+}
+
+
+if ( /^List-Id:.*NTP/ )
+{
+    to "$MAILDIR/ntp"
+}
+
+if ( /^List-Id:.*mcmt32.googlegroups.com/ )
+{
+    to "$MAILDIR/mcmt32"
+}
+
+if ( /^List-Id:.*skychart.groups.io/ )
+{
+    to "$MAILDIR/skychart"
+}
+
+if ( /^List-Id:.*ccdciel.groups.io/ )
+{
+    to "$MAILDIR/ccdciel"
+}
+
+if ( /^List-Id:.*EQMOD.yahoogroups.com/ )
+{
+    to "$MAILDIR/eqmod"
+}
+
+if ( /^To:.*linux.obs-besancon.fr/ )
+{
+    to "$MAILDIR/linux"
+}
+
+if ( /^To:.*ip.univ-rennes1.fr/ )
+{
+    to "$MAILDIR/ip"
+}
+
+if ( /^To:.*ip.services.cnrs.fr/ )
+{
+    to "$MAILDIR/ip"
+}
+
+if ( /^To:.*amanda/ )
+{
+    to "$MAILDIR/amanda"
+}
+
+if ( /^To:.*obs@obs-besancon.fr/ )
+{
+    to "$MAILDIR/obs"
+}
+
+if ( /^To:.*ntp-adm/ )
+{
+    to "$MAILDIR/ntp-adm"
+}
+
+if ( /^To:.*errors.efts/ )
+{
+    to "$MAILDIR/eftserror"
+}
+
+to "$MAILDIR/dulle"

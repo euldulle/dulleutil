@@ -1,0 +1,27 @@
+poll pop3.free.fr with no dns protocol pop3 username "dulle" password "freepasswd" is fmeyer here fetchall ssl sslproto TLS1.2
+mda "/usr/bin/maildrop"
+poll proxymail.utinam.cnrs.fr with no dns protocol imap port 993 username "fmeyer" password "utipasswd" options fetchall ssl
+mda "/usr/bin/maildrop"
+#poll 193.52.185.17 protocol imap port 993 username "fmeyer" password "N1GxffCg" options fetchall ssl
+#poll localhost protocol pop3 port 10112 username "dulle" password "fs5o4Z27" is fmeyer here options fetchall 
+#
+#      gmail errors : (fm 20190619)
+#
+###       set logfile "/home/fmeyer/.fetchmail/fetchmail.log"
+###       set postmaster "fmeyer"
+###       set no bouncemail
+###       set properties ""
+###       poll pop.gmail.com
+###         with no dns
+###         with proto POP3
+###         user "errors.efts.eu@gmail.com"
+###         pass "Ves@lius-EFTS-errs"
+###         is fmeyer here
+###       options
+###         warnings 3600
+###         keep
+###         fetchall
+###         ssl
+###         #sslfingerprint "88:D8:0A:CE:9D:CB:AF:80:B4:22:65:09:4E:5E:C8:F9"
+###         #sslcertck
+###         #sslcertfile /usr/local/share/certs/ca-root-nss.crt
