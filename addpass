@@ -1,0 +1,139 @@
+#!/bin/bash
+#
+encfile=/home/fmeyer/.perso/passwd.enc
+tmpfile=/home/fmeyer/.perso/pastemp
+
+chpass(){
+    if [[ "$1" == "" ]]; then
+        echo Need an id entry 
+        exit 1
+    else 
+        id="$1"
+    fi
+
+    if [[ "$2" == "" ]]; then
+        echo Need a passwd entry
+        exit 1
+    else 
+        passwd="$2"
+    fi
+
+    echo backing up encrypted file 
+
+    backupfile=$(date +"$encfile-%Y%m%d-%H%M%S.backup")
+    cp $encfile $backupfile
+    chmod 600 $backupfile
+
+    /usr/bin/gpg --decrypt --output $tmpfile $encfile
+
+    echo getting encrypting pass
+    encpp=$(grep ^encrypt $tmpfile |awk '{print $2}')
+
+    exist=$(grep "^$1 " $tmpfile) && 
+    sed -i "s/$id .*/$id $passwd/" $tmpfile && grep "$id" $tmpfile || (echo "$id not found" && rm -f $tmpfile && exit 1)
+
+    if [[ $encpp != "" ]]; then
+        /usr/bin/gpg --symmetric --pinentry-mode=loopback --batch --yes --passphrase $encpp --cipher-algo AES256 --output $encfile $tmpfile
+    else
+        echo Error did not find encrypting pass
+    fi
+    rm -f $tmpfile
+    chmod 600 $backupfile $encfile
+    }
+
+addpass(){
+    if [[ "$1" == "" ]]; then
+        echo Need an entry name
+        exit 1
+    fi
+
+    entry="$1"
+    shift
+    pas="$1"
+    shift
+
+    echo backing up encrypted file 
+
+    backupfile=$(date +"$encfile-%Y%m%d-%H%M%S.backup")
+    cp $encfile $backupfile
+    chmod 600 $backupfile
+
+    /usr/bin/gpg --decrypt --output $tmpfile $encfile
+
+    echo getting encrypting pass
+    encpp=$(grep ^encrypt $tmpfile |awk '{print $2}')
+
+    exist=$(grep "^$1 " $tmpfile)
+    if [[ $? == 0 ]]; then
+        echo entry $entry exists as $exist
+        rm -f $tmpfile
+        exit 1
+    fi
+
+    if test -z "$pas"; then
+        pas=$(makepasswd --crypt-md5 --chars 12|awk '{print $1}')
+    fi
+
+    echo "$entry $pas" |tee -a $tmpfile
+    if [[ $encpp != "" ]]; then
+        /usr/bin/gpg --symmetric --pinentry-mode=loopback --batch --yes --passphrase $encpp --cipher-algo AES256 --output $encfile $tmpfile
+    else
+        echo Error did not find encrypting pass
+    fi
+    rm -f $tmpfile
+    chmod 600 $backupfile $encfile
+}
+
+delpass(){
+    if [[ "$1" == "" ]]; then
+        echo Need an entry name
+        exit 1
+    fi
+
+    entry=$1
+
+    echo backing up encrypted file 
+    backupfile=$(date +"$encfile-%Y%m%d-%H%M%S.backup")
+
+    cp $encfile $backupfile
+    chmod 600 $backupfile
+
+    /usr/bin/gpg --decrypt --output $tmpfile $encfile
+
+    echo getting encrypting pass
+    encpp=$(grep ^encrypt $tmpfile |awk '{print $2}')
+
+    echo $encpp
+    exist=$(grep "^$1 " $tmpfile)
+
+    if [[ $? != 0 ]]; then
+        echo entry $entry not found. bye.
+        rm -f $tmpfile
+        exit 1
+    fi
+    echo deleting entry $entry
+    sed -i "/^$entry /d" $tmpfile
+
+    if [[ $encpp != "" ]]; then
+        /usr/bin/gpg --symmetric --pinentry-mode=loopback --batch --yes --passphrase $encpp --cipher-algo AES256 --output $encfile $tmpfile
+    else
+        echo Error did not find encrypting pass
+    fi
+    rm -f $tmpfile
+    chmod 600 $backupfile $encfile
+}
+
+getpass(){
+    /usr/bin/gpg --decrypt --batch=yes /home/fmeyer/.perso/passwd.enc 2>/dev/null |grep "^$1 "
+}
+
+catpass(){
+    /usr/bin/gpg --decrypt --batch=yes /home/fmeyer/.perso/passwd.enc 2>/dev/null
+}
+
+grepass(){
+    /usr/bin/gpg --decrypt --batch=yes /home/fmeyer/.perso/passwd.enc 2>/dev/null |grep "$1"
+}
+
+func=$(basename $0)
+$func $*

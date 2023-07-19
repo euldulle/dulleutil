@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# script to start and keep sshuttle alive
+#
+#    sshu start
+#    sshu stop
+#    sshu clean = clean logfile then start
+# log to $HOME/log/sshuttle.log
+#
+rhost=10.10.1.9
+rport=22
+nb_fails=2
+timeout=5
+retrysleep=1
+
+logfile=$HOME/log/sshuttle.log
+
+dolog(){
+    date +"%F %T: sshu $@"
+}
+
+clean_restart() {
+    event=$1
+    killall sshuttle 2>/dev/null
+    sshuttle @/etc/sshuttle/ltfb.conf
+    dolog "$event ($0)"
+}
+
+stop_all() {
+    dolog "Stopping sshuttle and sshu"
+    killall sshuttle 2>/dev/null
+    killall sshu  2>/dev/null
+}
+
+action="$1"
+
+if test -z "$action"; then
+    action="start"
+fi
+exec >>$logfile 2>>$logfile
+
+case "$action" in 
+    stop)
+        stop_all;;
+
+    clean)
+        echo -n >$logfile;;&
+
+    start|clean)
+        (
+        if ! pidof -x sshuttle; then
+            clean_restart "start"
+        fi
+
+        let failed=0
+        while : ; do
+            netcat -w $timeout -zv "$rhost" "$rport" >/dev/null 2>&1
+            if ! test "$?" = 0; then
+                if test "$failed" -gt "$nb_fails"; then
+                    clean_restart "restart"
+                fi
+                let failed=$failed+1
+                retrysleep=1
+            else
+                let failed=0
+                retrysleep=10
+            fi
+
+            sleep $retrysleep
+        done) </dev/null >>$logfile 2>>$logfile &
+        disown
+        ;;
+esac
