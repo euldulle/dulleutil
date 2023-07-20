@@ -27,7 +27,7 @@ if ( /^From:.*acie.en.ligne/ )
     to "/dev/null"
 }
 
-if ( /^From:.*auquotid/ )
+if ( /^From:.*au.*quotid/ )
 {
     to "/dev/null"
 }
