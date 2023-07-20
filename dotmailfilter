@@ -1,8 +1,6 @@
 MAILDIR="/home/fmeyer/mail"
 BOGOFILTER="/usr/bin/bogofilter"
 BOGOFILTER_DIR="/home/fmeyer/.bogofilter"
-LOGFILE="/home/fmeyer/tmp/balfm"
-#SENDMAIL="/sbin/exim4"
 SENDMAIL="/usr/bin/msmtp"
 COMSAT=no
 HOME="/home/fmeyer"
@@ -10,8 +8,8 @@ LANG="fr_FR.UTF-8"
 TRAP="/home/fmeyer/bin/log >/home/fmeyer/tmp/logtrap 2>&1"
 LOGABSTRACT=no
 MAILDROP_DEBUG=1
-LOCKFILE=/home/fmeyer/tmp/mailfilter.lock
-logfile "/home/fmeyer/tmp/mailfilter"
+LOCKFILE="/home/fmeyer/tmp/mailfilter.lock"
+logfile "/home/fmeyer/log/mailfilter"
 
 xfilter "/usr/bin/bogofilter -p -u -e"
 
