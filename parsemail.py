@@ -6,7 +6,7 @@ import dateutil.parser
 
 # logfile : 
 #    an external tail -f logfile will display logs
-logfile="/home/fmeyer/tmp/maillog"
+logfile="/home/fmeyer/log/maillog"
 # 
 with sys.stdin.buffer as input_stream:
     #
