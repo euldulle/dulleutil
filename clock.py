@@ -49,8 +49,7 @@ while True:
                 else:
                     os.system('beep -f 555 -l 50')
             olds=sec
-
-        wn=(n-gpsepoch).seconds/secsinweek
+        wn=(n-gpsepoch).total_seconds()/secsinweek
         jd=gcal2jd(n.year, n.month, n.day)
         mjd=float(jd[1])+(n.hour*3600+n.minute*60+n.second)/86400
         s=s+"  %s \n\n  MJD %11.5f\n"%(n.strftime("%A %d %m %Y ").strip(),mjd)
