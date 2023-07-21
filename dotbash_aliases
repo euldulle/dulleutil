@@ -41,6 +41,6 @@ fi
 #ftp_proxy='http://proxy-ftp:21/'
 #no_proxy='.obs-besancon.fr localhost 10.10.*.*'
 #export http_proxy ftp_proxy no_proxy 
-export LANG=en_EN.UTF-8
+export LANG=en_GB.UTF-8
 export VISUAL=vim
 export EDITOR=vim
