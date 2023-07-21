@@ -10,12 +10,6 @@ if [ -x /usr/bin/dircolors ]; then
     alias egrep='egrep --color=auto'
 fi
 
-export ORGANIZATION="Ganymede and beyond"
-export IRCNAME=Dulle
-export IRCNICK=Dulle
-export IRCSERVER="irc.freenode.net"
-export NNTPSERVER="news.univ-fcomte.fr"
-
 # some more ls aliases
 alias la='ls -A'
 alias l='ls -CF'
@@ -23,8 +17,6 @@ alias lscp='scp -P2222'
 alias wcl='ls $* |wc -l'
 alias dc='rlwrap dc'
 
-export LD_LIBRARY_PATH=/usr/local/lib:/usr/local/X11R6/lib/:$LD_LIBRARY_PATH
-alias alpine='alpine -passfile /home/fmeyer/.perso/actrl'
 alias lt='ls -ltr --color $* |tail -20'
 alias ll='ls -ltr --color $* |tail -20'
 alias ls='ls --color'
@@ -32,11 +24,6 @@ alias dus='du -s -- *|sort -n; echo total: `du -s .`'
 alias duh='du -sh -- *|sort -h; echo total: `du -sh .`'
 alias lsd='ls -d -- */'
 alias lsld='ls -ld -- */'
-alias vv="vlc --no-video-title --quiet "
-alias vl="vlc -L --qt-start-minimized --no-video-title --quiet "
-alias evince="evince 2>>/dev/null"
-alias chrome="chromium --proxy-server=localhost:3128"
-alias chr="chromium --password-store=basic"
 #
 alias sshrm="ssh raccord@mars"
 alias sshrg="ssh raccord@gnou"
@@ -47,8 +34,6 @@ alias sshm="ssh mars"
 alias sshg="ssh gnou"
 alias sshl="ssh ltfb2"
 alias sshp="ssh pluton"
-alias sshu="nohup /home/fmeyer/bin/watch_sshuttle >/dev/null 2>&1 &"
-unset MAILCHECK
 if [ -t 0 ]; then
     stty erase 
 fi
@@ -59,11 +44,3 @@ fi
 export LANG=en_EN.UTF-8
 export VISUAL=vim
 export EDITOR=vim
-export CVSROOT=/raid0/cvs
-export UECIDE=/home/fmeyer/.uecide
-export XLIB_SKIP_ARGB_VISUALS=1
-if [ -f "/raid0/bin/tf_functions.sh" ]; then 
-    . /raid0/bin/tf_functions.sh
-fi
-PATH=/sbin:/usr/sbin/:/usr/local/sbin/:~/bin:$PATH
-export PATH=$(echo "$PATH" | awk -v RS=':' -v ORS=":" '!a[$1]++'| sed 's/:$//')
