@@ -6,11 +6,11 @@ xset b off
 # keyboard delay and rate
 xset r rate 200 120
 
-if (lsusb -v |grep 000800110115030); then
+if (sudo lsusb -v |grep 000800110115030 >/dev/null 2>&1); then
     #
     # mouth
     #
-    autorandr $home/bin/mto-autorandr
+    autorandr mto-autorandr >/dev/null 2>&1
     /usr/bin/nmcli con down 03-obs_eth0
     /usr/bin/nmcli con up ltfb
     nohup xmessage -nearmouse " Réseau Moutherot " -timeout 2 >/dev/null 2>&1 &
@@ -22,7 +22,7 @@ if (sudo lsusb -v |grep 0dac4faf-8700-ee40-b758-26a107d76c6b >/dev/null 2>&1); t
     #
     # observatoire
     #
-    autorandr $home/bin/obs-autorandr
+    autorandr obs-autorandr >/dev/null 2>&1
     /usr/bin/nmcli radio wifi off
     /usr/bin/nmcli con up  obs-ethusb
     sudo mount /mars
