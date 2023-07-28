@@ -1,0 +1,115 @@
+#!/bin/bash
+#
+#
+
+function daemonlog(){
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$LOGDIR/relayd.log 2>&1
+}
+
+OBSLM=/home/fmeyer/observatoire_moutherot
+. $OBSLM/obslm.bash
+
+/usr/bin/ssh-agent >/home/fmeyer/.ssh/environment 
+. /home/fmeyer/.ssh/environment >/dev/null 2>&1
+/usr/bin/ssh-add /home/fmeyer/.ssh/obsm >/dev/null 2>&1
+
+LOGDIR="$OBSLM/log"
+servername="relay_server.py"
+
+piddaemon=$(pidof -x -o %PPID "relayd")
+pidserver=$(pidof -x -o %PPID "${servername}")
+
+if test -n "$piddaemon"; then
+    #
+    # relayd is already running 
+    #
+
+    #
+    # First check if initialisation has been done :
+    #   if not, do it once for each relay box:
+    if test -n "$OLM_R8_SEM"; then
+        if ! test -f "$OLM_R8_SEM"; then
+            daemonlog " initialising 8 port (KMTronic) relay box "
+            olm-init_r8_full
+            # wait for relay 16 to come uppp properly
+            sleep 10
+            touch $OLM_R8_SEM
+            if test -n "$OLM_R16_SEM"; then
+                if ! test -f "$OLM_R16_SEM"; then
+                    daemonlog " initialising 16 port (chinese) relay box "
+                    olm-init_r16_full
+                    touch $OLM_R16_SEM
+                fi
+            fi
+        fi
+    fi
+    case "$1" in
+        "status")
+            echo daemon pid = $piddaemon
+            if test -n "$pidserver"; then
+                echo server pid = $pidserver
+            else
+                echo server is not running
+            fi;;
+
+
+        "restart")
+            if pidserver=$(pidof -x -o %PPID "${servername}"); then
+                daemonlog " killing server $pidserver"
+                kill $pidserver
+            else
+                daemonlog " no server ${servername} running..."
+            fi;;
+
+        "stop")
+            daemonlog " TERM'ing daemon $piddaemon"
+            kill $piddaemon 
+            if pidserver=$(pidof -x -o %PPID "${servername}"); then
+                daemonlog " killing server $pidserver"
+                kill $pidserver
+            fi ;;
+    esac
+    exit
+else
+    case "$1" in
+        "status")
+            echo daemon is not running
+            if test -n "$pidserver"; then
+                echo server pid = $pidserver
+            else
+                echo server is not running
+            fi
+            exit ;;
+
+        start|restart)
+            daemonlog " Daemon is not running, starting it.";;
+
+        "stop")
+            echo " Daemon is not running, killing server"
+            if pidserver=$(pidof -x -o %PPID "${servername}"); then
+                daemonlog " killing server $pidserver"
+                kill $pidserver
+            else
+                echo " No server ${servername} to kill"
+            fi
+            exit;;
+        "")
+    esac
+    #
+    # run the daemonpart
+    #
+    cd $OBSLM/relay_server/websys
+    (
+    while [ 1 ]; do
+        pid=$(pidof -x $servername)
+        if [ $? == "0" ]; then
+            # server is running wait 10 s and go on
+            sleep 10
+        else
+            daemonlog "(re)starting $servername"
+            ./$servername >>$LOGDIR/relayserver.log 2>&1
+            sleep 1
+        fi
+    done) &
+    disown
+fi

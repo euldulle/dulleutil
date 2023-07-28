@@ -1,0 +1,186 @@
+
+body {
+    font-family : sans-serif;
+    font-size: 170%;
+}
+
+#header {
+    height: 48px;
+    background: white;
+    margin: 10px 4px 0px 4px;
+}
+
+#header-left {
+    float: left;
+    width: 350;
+    padding: 0px 0px 0px 0px;
+    position: relative;
+}
+
+.content-left {
+    float: left;
+    width: 400px;
+    padding: 20px 20px 0px 0px;
+    position: relative;
+}
+
+.content-right {
+    width: 400px;
+    float: right;
+    padding: 20px 20px 0px 0px;
+    position: relative;
+}
+
+#device {
+    color: #004A99;
+    font-size: 32px;
+    font-style: italic;
+    font-weight: bold;
+}
+
+#datafile {
+    color: #002A49;
+    font-family : courier;
+    font-size: 10px;
+    border: solid 1px #004;
+    padding: 1em
+}
+
+.logobox {
+    float: left;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-around;
+    height: 80px;
+    padding: 0px 0px 0px 0px;
+    width: auto;
+    position: absolute;
+    margin: 0px 0px 0px 400px;
+    display: flex;
+}
+
+#wrap {
+    position: absolute;
+    margin: 80px 0px 0px 0px ;
+    padding: 0px;
+}
+
+h2 {
+    font-size: 135%;
+}
+
+a {
+    text-decoration: none;
+    color:#00b;
+    cursor: pointer;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.menu {
+    width: 9em;
+    float:left;
+    text-align:center;
+}
+
+.menu>a {
+    display: block;
+    margin:.5em;
+    padding: .5em 2em;
+    border: solid 1px #00b;
+    border-radius: .3em;
+}
+
+.menu>a.selected {
+    background: #ddf;
+}
+
+.menu>a:hover {
+    background: #bbf;
+}
+
+.main {
+    margin-left:1em;
+}
+
+label {
+    display:inline-block;
+    text-align:right;
+    margin-right:0.2em;
+    width:20em;
+}
+
+.v {
+    font-family: monospace;
+}
+
+.na {
+    color: #888;
+}
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+thead {
+    background: #bbf;
+    border: 2px solid #444444;
+    text-align: center;
+}
+
+td {
+    border: 2px solid #444444;
+    text-align: left;
+    padding: 8px;
+}
+
+th {
+    border: 1px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+
+tr:nth-child(even) {
+    background-color: #dddddd;
+}
+
+
+
+input[type="radio"] + label {
+    color: black;
+    font-family:Arial, sans-serif;
+    font-size:18px;
+    display: inline;
+}
+
+input[type="number"] + label {
+    color: black;
+    font-family:Arial, sans-serif;
+    font-size:18px;
+    display: inline;
+}
+
+.terminaltext {
+    background-color: #000;
+    border: 1px solid #000;
+    color: #00ff00;
+    padding: 8px;
+    font-family: courier new;
+}
+
+.column {
+    float: left;
+    width: 45%;
+    padding: 10px;
+}
+
+.row:after {
+    content: "";
+    display: flex;
+    clear: both
+}
+
