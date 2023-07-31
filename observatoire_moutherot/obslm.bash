@@ -6,8 +6,14 @@ export OLM_SERVERLOG="$OLM_LOGDIR/relayserver.log"
 export OLM_R8_SEM="/tmp/olm_r8_sem"
 export OLM_R16_SEM="/tmp/olm_r16_sem"
 export OLM_EQ8TSYNC="/tmp/eq8tsynced"
-export baser8='http://fmeyer:4so4xRg9@192.168.0.23:2380/relays.cgi'
-export baser16='http://192.168.0.28/30/'
+
+export OLM_RELAY8IP="192.168.0.23"
+export OLM_RELAY8PORT="2380"
+export OLM_BASER8="http://fmeyer:4so4xRg9@${OLM_RELAY8IP}:${OLM_RELAY8PORT}/relays.cgi"
+
+export OLM_RELAY16IP="192.168.0.28"
+export OLM_RELAY8PORT=""
+export OLM_BASER16="http://${OLM_RELAY16IP}/30"
 
 daemonlog(){
     date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_DAEMONLOG 2>&1
@@ -78,9 +84,9 @@ olm_setr8(){
         *)
             return ;;
     esac
-    olm_log "     ${FUNCNAME[0]}: switching $switch, $baser8?relay=$addr"
+    olm_log "     ${FUNCNAME[0]}: switching $switch, ${OLM_BASER8}?relay=$addr"
 
-    curl -o /dev/null "$baser8?relay="$addr  >/dev/null 2>/dev/null
+    curl -o /dev/null "${OLM_BASER8}?relay="$addr  >/dev/null 2>/dev/null
 }
 
 olm_setr16(){
@@ -142,16 +148,16 @@ olm_setr16(){
             let addr=30+$ad
             ;;
     esac
-    olm_log "     ${FUNCNAME[0]}: setting $switch to $ad, $baser16 $addr"
+    olm_log "     ${FUNCNAME[0]}: setting $switch to $ad, ${OLM_BASER16} $addr"
 
-    curl -o /dev/null "$baser16"$addr  >/dev/null 2>/dev/null
+    curl -o /dev/null "${OLM_BASER16}/"$addr  >/dev/null 2>/dev/null
 }
 
 olm_cold_init(){
     olm_log "  ${FUNCNAME[0]} : starting init sequence"
     olm_init_r8_full
     # allow 15 s for relay16 to come up :
-    curl --connect-timeout 15 -o /dev/null "$baser16"  >/dev/null 2>/dev/null
+    curl --connect-timeout 15 -o /dev/null "${OLM_BASER16}"  >/dev/null 2>/dev/null
     if test "$?" ="0"; then
         olm_init_r16_full
     else
@@ -313,12 +319,13 @@ olm_get_relay_state(){
     if test "$arg" = "16"; then
         outfile="$wd/relay16"
         failed=""
-        ping -c 1 -W 1 relais16 >/dev/null 2>&1
+        ping -c 1 -W 1 $OLM_RELAY16IP >/dev/null 2>&1
         if test "$?" = "0"; then
             echo OK
             for i in $(seq 0 3); do
                 rm -rf $outfile-$i
-                wget relais16/30/43 --timeout=1 --tries=2 -O $outfile-$i >/dev/null 2>&1
+                wget --no-cache ${OLM_BASER16}/43 --timeout=1 --tries=2 -O $outfile-$i >/dev/null 2>&1
+                # curl  ${OLM_BASER16}/43 --output $outfile-$i >/dev/null 2>&1
                 if ! test "$?" = "0"; then
                     failed="1"
                     break
@@ -340,10 +347,10 @@ olm_get_relay_state(){
 
     if test "$arg" = "8"; then
         outfile="$wd/relay8"
-        ping -c 1 -W 1 relais8 >/dev/null 2>&1
+        ping -c 1 -W 1 ${OLM_RELAY8IP} >/dev/null 2>&1
         if test "$?" = "0"; then
             echo OK
-            /usr/bin/wget -O $outfile $baser8 --timeout=2 --tries=2 >/dev/null 2>/dev/null 
+            /usr/bin/wget -O $outfile ${OLM_BASER8} --timeout=2 --tries=2 >/dev/null 2>/dev/null 
             if test "$?" = "0"; then
                 cat "$outfile" |grep ': '|sed -E 's/ *[^ ]+ *//'
             else
