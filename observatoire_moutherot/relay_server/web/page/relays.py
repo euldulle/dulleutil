@@ -53,6 +53,19 @@ class RelayPage(RelServPage):
 
     def getTitle(self):
         return '16 port'
+        
+    def sessionControl(self):
+        self.status='<div class="column"><table>'
+        self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Session control</font></th></tr></thead>\n'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=shutdown" title="Shutting down everything">'
+        self.status += '<font color="#0000FF">Shutdown</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=timesync-eq8" title="sync mount to UTC">'
+        self.status += '<font color="#0000FF">Time sync EQ8</font></a></td></tr>'
+        self.status += '</table>\n'
+        self.status += '</div>'
+        self.status += '<br/>\n'
+        return self.status
 
     def getIndiStatus(self):
         #
@@ -60,7 +73,7 @@ class RelayPage(RelServPage):
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Indi server/driver</font></th></tr></thead>\n'
         #self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (oid off ?)</font></td>\n'
         if True:
-            p=subprocess.Popen([Params.getResDir()+'get_indi_status.bash'],stdout=subprocess.PIPE,shell=True) 
+            p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_indi_status'],stdout=subprocess.PIPE,shell=True) 
             if p.stdout.readline().decode('utf-8').rstrip() == "notup":
                 self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (oid off ?)</font></td>\n'
             else:
@@ -100,7 +113,9 @@ class RelayPage(RelServPage):
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Single boards control</font></th></tr></thead>\n'
 
-        self.status += '<tr><td colspan="2"><font color="#008000">Oid</font></td> <td style="text-align:center;" > <a href="/page/relays.py?reboot=oid"><font color="#0000FF">reboot</font></a></td><td style="text-align:center;" > <a href="/page/relays.py?shutdown=oid">shutdown</a></td></tr>\n'
+        self.status += '<tr><td colspan="2"><font color="#008000">Oid</font></td>'
+        self.status += '<td style="text-align:center;"><a href="/page/relays.py?reboot=oid"><font color="#0000FF">reboot</font></a></td>'
+        self.status += '<td style="text-align:center;"><a href="/page/relays.py?shutdown=oid">shutdown</a></td></tr>\n'
 
         self.status += '</table>'
         self.status += '<br/>\n'
@@ -164,7 +179,7 @@ class RelayPage(RelServPage):
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="2" align="center"> <font color="#444488"> 16-RELAY BOX</font></th></tr></thead>\n'
         self.lines=[]
-        p=subprocess.Popen([Params.getResDir()+'get_relay_state.bash 16'],stdout=subprocess.PIPE,shell=True) 
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_relay_state 16'],stdout=subprocess.PIPE,shell=True) 
         #
         # Output of the command :
         #   get_relay_state.bash 16
@@ -247,7 +262,7 @@ class RelayPage(RelServPage):
         #
         # getting status from kmtronic box, the bulgarian one
         #
-        p=subprocess.Popen([Params.getResDir()+'get_relay_state.bash 8'],stdout=subprocess.PIPE,shell=True) 
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_relay_state 8'],stdout=subprocess.PIPE,shell=True) 
         etat=p.stdout.readline().decode('utf-8').rstrip()
         if etat == "OK":
             line=p.stdout.readline()
@@ -283,6 +298,25 @@ class RelayPage(RelServPage):
         page = ''
         page += '<div class="row">'
 
+        if "session" in form:
+            action=form.getvalue('session')
+            if action == "shutdown":
+                page += '<div> Shutdown everything <a href=/page/realys.py?session=shutdown-confirm>Confirm</a></div>'
+                page += '</div>'
+                return page
+
+            if action == "shutdown-confirm":
+                page += '<div> Shutdown everything <a href=/page/realys.py?session=shutdown-confirm>Confirm</a></div>'
+                page += '</div>'
+                p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_session_shutdown'],stdout=subprocess.PIPE,shell=True)  #FIXME
+                return page
+
+            if action == "timesync-eq8":
+                command='timeout 5 ssh -o ConnectTimeout=1 oid ./indi_env.sh in_sync_eq8_time' 
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                form['session'].value='None'
+                sleep(self.delay)
+
         if "switch" in form:
             try:
                 url=form.getvalue('switch')
@@ -293,13 +327,13 @@ class RelayPage(RelServPage):
                     # if url is just an int then its a command for 8-relay Box
                     switch8=int(url)
                     newurl=self.kmtronic_switch+url
-                    p=subprocess.Popen(['wget -O/dev/null 2>/dev/null '+ newurl],stdout=subprocess.PIPE,shell=True) 
+                    p=subprocess.Popen(['wget -O/dev/null >/dev/null 2>/dev/null '+ newurl],stdout=subprocess.PIPE,shell=True) 
                 except:
                     #
                     # address the 16-switch actions
                     #
 
-                    urllib.request.urlretrieve(url)
+                    urllib.request.urlretrieve(url,filename="/dev/null")
                     request = url[-2:]
                     intreq = int(request)
                     
@@ -312,16 +346,16 @@ class RelayPage(RelServPage):
                         sleep(self.delay)
 
                         newurl=sub("%s$" %request, "%.2d"%opreq, url)
-                        urllib.request.urlretrieve(newurl)
+                        urllib.request.urlretrieve(newurl,filename="/dev/null")
 
                     if "action" in form:
                         sleep(1)
                         #
                         # Sending stop
                         #
-                        urllib.request.urlretrieve("http://relais16/30/29")
+                        urllib.request.urlretrieve("http://relais16/30/29",filename="/dev/null")
                         sleep(self.delay)
-                        urllib.request.urlretrieve("http://relais16/30/28")
+                        urllib.request.urlretrieve("http://relais16/30/28",filename="/dev/null")
 
             except:
                 page = "error urllib"
@@ -338,6 +372,9 @@ class RelayPage(RelServPage):
                 if (target  == "oid"):
                     command='timeout 5 ssh -o ConnectTimeout=1 oid sudo poweroff' 
 
+                if (target  == "session"):
+                    command='timeout 5 ssh -o ConnectTimeout=1 oid sudo poweroff' 
+
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
 
@@ -347,6 +384,41 @@ class RelayPage(RelServPage):
                 raise
 
             form['shutdown'].value='None'
+
+        if "reboot" in form:
+            try:
+                target=form.getvalue('reboot')
+                if (target  == "pio"):
+                    command='timeout 5 ssh -o ConnectTimeout=1 pio sudo reboot' 
+
+                if (target  == "oid"):
+                    command='timeout 5 ssh -o ConnectTimeout=1 oid sudo reboot' 
+
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                sleep(self.delay)
+
+            except:
+                page = "reboot "
+                page = "Unexpected error:", sys.exc_info()[0]
+                raise
+
+            form['reboot'].value='None'
+
+        if "sync" in form:
+            try:
+                target=form.getvalue('sync')
+                if (target  == "oid"):
+                    command='timeout 5 ssh -o ConnectTimeout=1 oid ./indi_env.sh in_sync_eq8_time' 
+
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                sleep(self.delay)
+
+            except:
+                page = "sync "
+                page = "Unexpected error:", sys.exc_info()[0]
+                raise
+
+            form['sync'].value='None'
 
         if "fwset" in form:
             try:
@@ -391,6 +463,7 @@ class RelayPage(RelServPage):
             form['inditarget'].value='None'
 
         page += self.getRelayStatus()
+        page += self.sessionControl()
         page += self.getIndiStatus()
         page += '</div>'
         return page

@@ -1,7 +1,23 @@
+export OLM_ROOT="/home/fmeyer/observatoire_moutherot"
+export OLM_LOGDIR="$OLM_ROOT/log"
+export OLM_LOG="$OLM_LOGDIR/olm.log"
+export OLM_DAEMONLOG="$OLM_LOGDIR/relayd.log"
+export OLM_SERVERLOG="$OLM_LOGDIR/relayserver.log"
 export OLM_R8_SEM="/tmp/olm_r8_sem"
 export OLM_R16_SEM="/tmp/olm_r16_sem"
+export OLM_EQ8TSYNC="/tmp/eq8tsynced"
+export baser8='http://fmeyer:4so4xRg9@192.168.0.23:2380/relays.cgi'
+export baser16='http://192.168.0.28/30/'
 
-function setr8-usage(){
+daemonlog(){
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_DAEMONLOG 2>&1
+}
+
+olm_log() {
+    echo $(date +"%H:%M:%S ") $* >>$OLM_LOG
+    }
+
+setr8_usage(){
 cat <<ENDUSAGE
     usage ${FUNCNAME[0]} channel 
     channel   description :
@@ -14,7 +30,7 @@ cat <<ENDUSAGE
 ENDUSAGE
 }
 
-function setr16-usage(){
+setr16_usage(){
 cat <<ENDUSAGE
     usage ${FUNCNAME[0]} channel 0|1
     channel   description
@@ -32,9 +48,8 @@ cat <<ENDUSAGE
 ENDUSAGE
 }
 
-function olm-setr8(){
-    baserel='http://fmeyer:4so4xRg9@relais8:2380/relays.cgi?relay='
-
+olm_setr8(){
+    echo "arg $1"
     switch="$1"
     if test -z "$switch"; then
         setr8-usage
@@ -63,13 +78,12 @@ function olm-setr8(){
         *)
             return ;;
     esac
-    echo "# switching $switch, $baserel$addr"
+    olm_log "     ${FUNCNAME[0]}: switching $switch, $baser8?relay=$addr"
 
-    curl -o /dev/null "$baserel"$addr  >/dev/null 2>/dev/null
+    curl -o /dev/null "$baser8?relay="$addr  >/dev/null 2>/dev/null
 }
 
-function olm-setr16(){
-    baserel='http://192.168.0.28/30/'
+olm_setr16(){
 
     switch="$1"
     ad="$2"
@@ -128,63 +142,222 @@ function olm-setr16(){
             let addr=30+$ad
             ;;
     esac
-    echo "# setting $switch to $ad, $baserel$addr"
+    olm_log "     ${FUNCNAME[0]}: setting $switch to $ad, $baser16 $addr"
 
-    curl -o /dev/null "$baserel"$addr  >/dev/null 2>/dev/null
+    curl -o /dev/null "$baser16"$addr  >/dev/null 2>/dev/null
 }
 
-function olm-cold_init(){
-    olm-init_r8_full
-    olm-init_r16_full
+olm_cold_init(){
+    olm_log "  ${FUNCNAME[0]} : starting init sequence"
+    olm_init_r8_full
+    # allow 15 s for relay16 to come up :
+    curl --connect-timeout 15 -o /dev/null "$baser16"  >/dev/null 2>/dev/null
+    if test "$?" ="0"; then
+        olm_init_r16_full
+    else
+        olm_log "${FUNCNAME[0]} : error connecting r16, not initializing it"
+    fi
+    olm_log "  ${FUNCNAME[0]} : init over"
     }
 
-function olm-init_r8_full(){
+olm_init_r8_full(){
+    olm_log "    ${FUNCNAME[0]} : starting init r8"
     delay=1
-    olm-setr8 PILIER 1
+    olm_setr8 R16 1
     sleep $delay
-    olm-setr8 CAM 1
+    olm_setr8 PILIER 1
     sleep $delay
-    olm-setr8 PCN 1
+    olm_setr8 CAM 1
     sleep $delay
-    olm-setr8 PCS 1
+    olm_setr8 PCN 1
     sleep $delay
-    olm-setr8 R16 1
+    olm_setr8 PCS 1
+    sleep $delay
+    olm_log "  ${FUNCNAME[0]} : exiting"
     }
 
-function olm-init_r16_full(){
+olm_init_r16_full(){
+    olm_log "    ${FUNCNAME[0]} : starting init r16"
     delay=2
-    olm-setr16 USB 1
+    olm_setr16 USB 1
     sleep $delay
-    olm-setr16 EQ8 1
+    olm_setr16 EQ8 1
     sleep $delay
-    olm-setr16 DEW 1
+    olm_setr16 DEW 1
     sleep $delay
-    olm-setr16 ATK 1
+    olm_setr16 ATK 1
     sleep $delay
-    olm-setr16 FWST 1
+    olm_setr16 FWST 1
     sleep $delay
-    olm-setr16 C14ST 1
+    olm_setr16 C14ST 1
     sleep $delay
-    olm-setr16 TSST 1
+    olm_setr16 TSST 1
     sleep $delay
-    olm-setr16 OID 1
+    olm_setr16 OID 1
+    olm_log "  ${FUNCNAME[0]} : exiting"
 }
 
-function olm-off_r16_full(){
+olm_off_r16_full(){
+    olm_log "    ${FUNCNAME[0]} : starting r16 shutdown"
     delay=1
-    olm-setr16 OID 0
+    olm_setr16 OID 0
     sleep $delay
-    olm-setr16 USB 0
+    olm_setr16 USB 0
     sleep $delay
-    olm-setr16 EQ8 0
+    olm_setr16 EQ8 0
     sleep $delay
-    olm-setr16 DEW 0
+    olm_setr16 DEW 0
     sleep $delay
-    olm-setr16 ATK 0
+    olm_setr16 ATK 0
     sleep $delay
-    olm-setr16 FWST 0
+    olm_setr16 FWST 0
     sleep $delay
-    olm-setr16 C14ST 0
+    olm_setr16 C14ST 0
     sleep $delay
-    olm-setr16 TSST 0
+    olm_setr16 TSST 0
+    olm_log "    ${FUNCNAME[0]} : r16 shutdown complete"
+    rm -f $OLM_R16_SEM
 }
+
+olm_off_r8_full(){ 
+    olm_log "    ${FUNCNAME[0]} : starting r16 shutdown"
+    delay=1
+    olm_setr8 LIGHT 0
+    sleep $delay
+    olm_setr8 PILIER 0
+    sleep $delay
+    olm_setr8 CAM 0
+    sleep $delay
+    olm_setr8 PRN 0
+    sleep $delay
+    olm_setr8 PRS 0
+    sleep $delay
+    olm_setr8 R16 0
+    rm -f $OLM_R8_SEM
+
+    olm_log "    ${FUNCNAME[0]} : r8 shutdown complete"
+}
+
+olm_fullshutdown(){ 
+    olm_log "    ${FUNCNAME[0]} : starting full shutdown"
+    olm_shutdown_oid
+    sleep 5
+    olm_off_r16_full 
+    olm_off_r8_full
+    olm_log "    ${FUNCNAME[0]} : full shutdown completed"
+}
+
+olm_fw_get_filter(){
+    target="oid"
+
+    ping -c 1 -W 1 "$target" >/dev/null 2>&1
+    if test "$?" = "0"; then
+        case "$0" in
+            "get_fw_status")
+                ssh "$target" fw_get
+                ;;
+            "set_fw_status")
+                if test -n "$1"; then
+                    ssh "$target" fw_set "$1"
+                fi
+                ;;
+        esac
+        ssh "$target" fw_get
+    else
+        echo "notup"
+    fi
+    }
+
+olm_fw_get_filter(){
+    target="oid"
+    ping -c 1 -W 1 "$target" >/dev/null 2>&1
+    if test "$?" = "0"; then
+        case "$0" in
+            "get_fw_status")
+                ssh "$target" fw_get
+                ;;
+            "set_fw_status")
+                if test -n "$1"; then
+                    ssh "$target" fw_set "$1"
+                fi
+                ;;
+        esac
+        ssh oid fw_get
+    else
+        echo "notup"
+    fi
+}
+
+olm_get_indi_status(){
+#
+# getting indi status running on oid
+#
+    source /home/fmeyer/.ssh/environment >/dev/null 2>&1
+    ssh-add /home/fmeyer/.ssh/obsm
+
+    ping -c 1 -W 1 oid >/dev/null 2>&1
+    if test "$?" = "0"; then
+        echo OK
+        ssh oid in_status_all
+    else
+        echo notup
+    fi
+}
+
+olm_get_relay_state(){
+    wd=/tmp
+
+    arg="$1"
+    if test "$1" = ""; then
+        # echo will do 16 by default
+        arg="16"
+    fi
+
+    if test "$arg" = "16"; then
+        outfile="$wd/relay16"
+        failed=""
+        ping -c 1 -W 1 relais16 >/dev/null 2>&1
+        if test "$?" = "0"; then
+            echo OK
+            for i in $(seq 0 3); do
+                rm -rf $outfile-$i
+                wget relais16/30/43 --timeout=1 --tries=2 -O $outfile-$i >/dev/null 2>&1
+                if ! test "$?" = "0"; then
+                    failed="1"
+                    break
+                fi
+            done
+            if test "$failed" = ""; then
+                cat $outfile-[0-3] \
+                    |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g' \
+                    |grep 'Relay...:' \
+                    |sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@"@@g'\
+                    |awk '{print $2 " " $5 " " $7}'
+            else
+                echo notup
+            fi
+        else
+            echo notup
+        fi
+    fi
+
+    if test "$arg" = "8"; then
+        outfile="$wd/relay8"
+        ping -c 1 -W 1 relais8 >/dev/null 2>&1
+        if test "$?" = "0"; then
+            echo OK
+            /usr/bin/wget -O $outfile $baser8 --timeout=2 --tries=2 >/dev/null 2>/dev/null 
+            if test "$?" = "0"; then
+                cat "$outfile" |grep ': '|sed -E 's/ *[^ ]+ *//'
+            else
+                echo notup
+            fi
+        else
+            echo notup
+        fi
+    fi
+    }
+
+if test -n "$1"; then
+    $*
+fi

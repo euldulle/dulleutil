@@ -1,28 +1,37 @@
 #!/bin/bash
 #
 #
+arg="$1"
+if ! test -z "$arg"; then
+    shift
+fi
 
-function daemonlog(){
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$LOGDIR/relayd.log 2>&1
-}
+source $HOME/observatoire_moutherot/obslm.bash
 
-OBSLM=/home/fmeyer/observatoire_moutherot
-. $OBSLM/obslm.bash
+daemonlog "$0  daemon pid"
+read a b pid <<< $(. /home/fmeyer/.ssh/environment)
 
-/usr/bin/ssh-agent >/home/fmeyer/.ssh/environment 
+daemonlog "$0  configuring ssh agent and key"
+if ! test "$(pidof ssh-agent)" = "$pid"; then
+    killall ssh-agent
+    rm $HOME/.ssh/environment
+    /usr/bin/ssh-agent >/home/fmeyer/.ssh/environment 
+fi
+
 . /home/fmeyer/.ssh/environment >/dev/null 2>&1
 /usr/bin/ssh-add /home/fmeyer/.ssh/obsm >/dev/null 2>&1
 
-LOGDIR="$OBSLM/log"
 servername="relay_server.py"
 
 piddaemon=$(pidof -x -o %PPID "relayd")
 pidserver=$(pidof -x -o %PPID "${servername}")
+daemonlog "testing daemon pid"
 
 if test -n "$piddaemon"; then
     #
     # relayd is already running 
     #
+    daemonlog " initialising 8 port (KMTronic) relay box "
 
     #
     # First check if initialisation has been done :
@@ -30,14 +39,14 @@ if test -n "$piddaemon"; then
     if test -n "$OLM_R8_SEM"; then
         if ! test -f "$OLM_R8_SEM"; then
             daemonlog " initialising 8 port (KMTronic) relay box "
-            olm-init_r8_full
+            olm_init_r8_full
             # wait for relay 16 to come uppp properly
             sleep 10
             touch $OLM_R8_SEM
             if test -n "$OLM_R16_SEM"; then
                 if ! test -f "$OLM_R16_SEM"; then
                     daemonlog " initialising 16 port (chinese) relay box "
-                    olm-init_r16_full
+                    olm_init_r16_full
                     touch $OLM_R16_SEM
                 fi
             fi
@@ -98,7 +107,7 @@ else
     #
     # run the daemonpart
     #
-    cd $OBSLM/relay_server/websys
+    cd $OLM_ROOT/relay_server/websys
     (
     while [ 1 ]; do
         pid=$(pidof -x $servername)
@@ -107,7 +116,7 @@ else
             sleep 10
         else
             daemonlog "(re)starting $servername"
-            ./$servername >>$LOGDIR/relayserver.log 2>&1
+            ./$servername >>$OLM_SERVERLOG 2>&1
             sleep 1
         fi
     done) &
