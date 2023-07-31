@@ -9,7 +9,7 @@ class Params:
     hostname = socket.gethostname()
     root_dir="/home/fmeyer/observatoire_moutherot/relay_server/"
     obslm_dir="/home/fmeyer/observatoire_moutherot/"
-    tmp_dir = root_dir+"/tmp/"
+    tmp_dir = "/tmp/"
     server_pid_file = tmp_dir+"relay.pid"
     data_dir = root_dir
     res_dir = root_dir
