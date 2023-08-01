@@ -148,7 +148,7 @@ olm_setr16(){
             let addr=30+$ad
             ;;
     esac
-    olm_log "     ${FUNCNAME[0]}: setting $switch to $ad, ${OLM_BASER16} $addr"
+    olm_log "     ${FUNCNAME[0]}: setting $switch to $ad, ${OLM_BASER16}/$addr"
 
     curl -o /dev/null "${OLM_BASER16}/"$addr  >/dev/null 2>/dev/null
 }
