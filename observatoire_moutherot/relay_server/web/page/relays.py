@@ -276,11 +276,15 @@ class RelayPage(RelServPage):
                     color='<font color="#00B000">'+status+'</font>'
                     if (status == "1"):
                         color='<font color="#00B000">ON</font>'
+                        setstate=0
 
                     if (status == "0"):
                         color='<font color="#FF0000">OFF</font>'
+                        setstate=1
+
                     self.status += '<tr><td> <a href="'
-                    self.status += '/page/relays.py?switch=%d">%s</a></td><td style="text-align:center;" >'%(1+self.kmtronic_config.index(config),config)
+                    #self.status += '/page/relays.py?switch=%d>%s</a></td><td style="text-align:center;" >'%(1+self.kmtronic_config.index(config),config)
+                    self.status += '/page/relays.py?switch=%d&setstate=%d">%s</a></td><td style="text-align:center;" >'%(1+self.kmtronic_config.index(config),setstate,config)
                     self.status += color+'</td></tr>\n'
                 else:
                     pass
