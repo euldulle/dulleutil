@@ -11,8 +11,8 @@ from gpio_filter_assignments import *
 
 def clean_exit(signum, frame):
     global file
-    curses.nocbreak(); 
-    stdscr.keypad(0); 
+    curses.nocbreak();
+    stdscr.keypad(0);
     curses.echo()
     curses.endwin()
     # termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
@@ -38,19 +38,19 @@ def getch():   # define non-Windows version
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
     return ch
- 
+
 #
-# Init No key press 
+# Init No key press
 #
 keycode = None
 
 #
 # Threaded kb lookup
-# 
+#
 def keypress():
     global keycode
     keycode = ord(getch())
- 
+
 
 def gpio_dc_on(dir):
     if (dir==1):
@@ -63,7 +63,7 @@ def gpio_dc_on(dir):
 def gpio_dc_off():
         GPIO.output(O_focus_in, GPIO.LOW)
         GPIO.output(O_focus_out, GPIO.LOW)
-        
+
 def do_move_dc():
     global step_scale, step_range, step_inc, delay_step, step_pos, backlash_param
     count=step_scale[step_range]
@@ -82,13 +82,13 @@ def do_move_dc():
         step_pos=(step_pos+delay_disp*scale_delay)
     else:
         step_pos=(step_pos-delay_disp*scale_delay)
-        
+
     do_move_dc.lastdir=step_inc
     gpio_dc_off()
 
 
 ################################################
-# 
+#
 ################################################
 
   ####    #####    ##    #####    #####
@@ -114,8 +114,8 @@ stdscr.addstr(0,0,s,curses.A_REVERSE)
 s="  POS(arb)  SPD "
 stdscr.addstr(1,1,s,curses.A_BOLD)
 
-#step_scale=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000.] 
-step_scale=[100,200,500,1000,2000,5000,10000.] 
+#step_scale=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000.]
+step_scale=[100,200,500,1000,2000,5000,10000.]
 max_range=6
 step_range=4
 step_inc=1
@@ -135,8 +135,8 @@ GPIO.setmode(GPIO.BCM)
 #
 # GPIO pin dir settings
 #
-GPIO.setup(O_focus_in, GPIO.OUT) 
-GPIO.setup(O_focus_out, GPIO.OUT) 
+GPIO.setup(O_focus_in, GPIO.OUT)
+GPIO.setup(O_focus_out, GPIO.OUT)
 sleep(0.1)
 #
 # GPIO pin init
@@ -151,7 +151,7 @@ initial_settings = termios.tcgetattr(fd)
 
 #
 #
-# 
+#
 gpio_dc_off()
 
 while True:
@@ -175,8 +175,8 @@ while True:
         step_pos=0
     elif keycode==3:
         termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
-        curses.nocbreak(); 
-        stdscr.keypad(0); 
+        curses.nocbreak();
+        stdscr.keypad(0);
         curses.echo()
         curses.endwin()
         #GPIO.cleanup()

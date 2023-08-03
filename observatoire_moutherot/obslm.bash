@@ -54,7 +54,7 @@ olm_log() {
 
 setr8_usage(){
 cat <<ENDUSAGE
-    usage ${FUNCNAME[0]} channel 
+    usage ${FUNCNAME[0]} channel
     channel   description :
     LIGHT     lumiere
     PILIER    pilier
@@ -71,7 +71,7 @@ cat <<ENDUSAGE
     channel   description
     USB       hub usb
     EQ8       eq8 mount
-    INDI      indi host 
+    INDI      indi host
     DEW       dew heater
     ATK       atik cam
     FWST      filter wheel stepper
@@ -96,7 +96,7 @@ olm_setr8(){
         return
     fi
 
-    case $switch in 
+    case $switch in
         LIGHT)
             let addr=1
             ;;
@@ -148,7 +148,7 @@ olm_setr16(){
         fi
     fi
 
-    case $switch in 
+    case $switch in
         USB)
             let addr=22+$ad
             ;;
@@ -295,7 +295,7 @@ olm_off_r16_full(){
     rm -f $OLM_R16_SEM
 }
 
-olm_off_r8_full(){ 
+olm_off_r8_full(){
     olm_log "    ${FUNCNAME[0]} : starting r16 shutdown"
     delay=1
     olm_setr8 LIGHT 0
@@ -323,7 +323,7 @@ olm_session_shutdown(){
     olm_log "    ${FUNCNAME[0]} : starting full shutdown"
     olm_shutdown_indihost
     sleep 5
-    olm_off_r16_full 
+    olm_off_r16_full
     olm_off_r8_full
     olm_log "    ${FUNCNAME[0]} : full shutdown completed"
     touch $OLM_SHUTDOWN_SEM
@@ -333,7 +333,7 @@ olm_indicmd(){
     olm_log ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 $OLM_INDIHOST $*
     ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 fmeyer@$OLM_INDIHOST $*
 }
- 
+
 olm_fw_get_filter(){
 
     ping -c 1 -W 1 "$OLM_INDIHOST" >/dev/null 2>&1
@@ -363,7 +363,7 @@ olm_get_indi_status(){
     ping -c 1 -W 1 $OLM_INDIHOST >/dev/null 2>&1
     if test "$?" = "0"; then
         echo OK
-        olm_indicmd olm_in_status_all 
+        olm_indicmd olm_in_status_all
     else
         echo notup
     fi
@@ -412,7 +412,7 @@ olm_get_relay_state(){
         ping -c 1 -W 1 ${OLM_RELAY8IP} >/dev/null 2>&1
         if test "$?" = "0"; then
             echo OK
-            # /usr/bin/wget -O $OLM_R8_STATE ${OLM_BASER8} --timeout=2 --tries=2 >/dev/null 2>/dev/null 
+            # /usr/bin/wget -O $OLM_R8_STATE ${OLM_BASER8} --timeout=2 --tries=2 >/dev/null 2>/dev/null
             curl --connect-timeout "$OLM_SETTIMEOUT"  ${OLM_BASER8} -o $OLM_R8_STATE >/dev/null 2>&1
             if test "$?" = "0"; then
                 cat "$OLM_R8_STATE" |grep ': '|sed -E 's/ *[^ ]+ *//'
@@ -430,7 +430,7 @@ olm_in_log(){
     }
 
 olm_in_sync_eq8_time(){
-    # init time 
+    # init time
     #
     if ! test -f "$OLM_EQ8TSYNC"; then
         /usr/bin/indi_setprop "EQMod Mount.CONNECTION.CONNECT=On"
@@ -563,7 +563,7 @@ olm_in_stop_all(){
         olm_in_stop $driver
     done <$OLM_INDILOCALDRIVERS
     olm_in_log Stopping indiserver
-    olm_in_killserv 
+    olm_in_killserv
     olm_in_log Done
     olm_in_log /${FUNCNAME[0]}
     }
@@ -590,7 +590,7 @@ olm_in_stop(){
 
 olm_in_cycle(){
     olm_in_log ${FUNCNAME[0]}
-    olm_in_log START CYCLE 
+    olm_in_log START CYCLE
     olm_in_dname $1
     if [[ $1 == "indiserver" ]]; then
         olm_in_log Cycling indiserver
@@ -607,7 +607,7 @@ olm_in_cycle(){
         olm_in_log olm_in_start $driver
         olm_in_start $driver
     fi
-    olm_in_log END CYCLE 
+    olm_in_log END CYCLE
     olm_in_log /${FUNCNAME[0]}
     olm_in_log ==========================
     }

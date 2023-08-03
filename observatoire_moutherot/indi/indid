@@ -28,7 +28,7 @@ pidserver=$(pidof -o %PPID "${servername}")
 
 if test -n "$piddaemon"; then
     #
-    # indid is already running 
+    # indid is already running
     #
     #
     # First check if initialisation has been done :
@@ -67,8 +67,8 @@ if test -n "$piddaemon"; then
 
         "stop")
             idaemonlog " TERMing daemon $piddaemon"
-            echo kill $piddaemon 
-            kill $piddaemon 
+            echo kill $piddaemon
+            kill $piddaemon
             echo killall $servername
             killall $servername
             ;;
@@ -114,7 +114,7 @@ else
             ${serverdir}/${servername} ${serverargs} >>$OLM_INDISERVERLOG 2>&1 &
             sleep 1
             idaemonlog "  -> starting indi drivers "
-            olm_in_start_all 
+            olm_in_start_all
         fi
         sleep 10
     done) &

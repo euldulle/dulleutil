@@ -47,13 +47,13 @@ class RelayPage(RelServPage):
        )
 
     delay=1.0
- 
+
     def pageID(self):
         return 'relay'
 
     def getTitle(self):
         return '16 port'
-       
+
     def sessionControl(self):
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Session control</font></th></tr></thead>\n'
@@ -88,12 +88,12 @@ class RelayPage(RelServPage):
                     startcom='olm_in_start %s'%(indistatus[0])
 
                     self.status += '<tr><td> <font color="#0000FF">'+indistatus[0]+'</font></td>\n'
-                   
+
                     if  (indistatus[2] == 'not_running'):
                         self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
                     else:
                         self.status += '<td><font color="#00B000">'+indistatus[2] + '</font></td>\n'
-                      
+
 
                     if  (indistatus[2] == 'not_running'):
                         self.status += '<td style="text-align:center;" colspan=2> <a href="/page/relays.py?indicom=olm_in_start&inditarget='+indistatus[0]+'">Start</a></td>\n'
@@ -150,7 +150,7 @@ class RelayPage(RelServPage):
 
             self.status += ('<tr><td>Current : </td><td> <font color="'
                     +filt['color']+'">'+filt['filter']+'</font></td></tr>\n')
-           
+
 #               if  (fwstatus[2] == 'not_running'):
 #                   self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
 #               else:
@@ -164,7 +164,7 @@ class RelayPage(RelServPage):
                         self.status += '<font color="'+filt['color']+'">'+filt['filter']+'</font></td>'
                     else:
                         self.status += '<a href="/page/relays.py?fwset='+pos+'" style="color: '+f['color']+'">'+f['filter']+'</font></a></td>'
-   
+
             self.status += '</tr>\n'
 
         self.status += '</table>'
@@ -256,7 +256,7 @@ class RelayPage(RelServPage):
                 self.status += line
         else:
             self.status += '<tr><td colspan="2"> <font color="#FF0000">cant get 16-relay status</font></td></tr>\n'
-          
+
         self.status += '</table><br>\n'
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="2" align="center"> <font color="#444488"> 8-RELAY BOX</font></th></tr></thead>\n'
@@ -347,7 +347,7 @@ class RelayPage(RelServPage):
                     urllib.request.urlretrieve(url,filename="/dev/null")
                     request = url[-2:]
                     intreq = int(request)
-                   
+
                     rel = self.relays[int(intreq/2)]
                     if rel['type'] == 'temp':
                         if intreq % 2 == 0:

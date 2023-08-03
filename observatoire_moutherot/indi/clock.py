@@ -39,7 +39,7 @@ while True:
         s="  %s :"%(host)
         n=datetime.datetime.now()
         s=s+"\n  %s %s\n"%(n.strftime("%H:%M:%S"),tz)
-        
+
         if beep:
             sec=int(n.second)
             if sec != olds:
@@ -63,8 +63,8 @@ while True:
 
         stdscr.refresh()
     except KeyboardInterrupt:
-        curses.nocbreak(); 
-        stdscr.keypad(0); 
+        curses.nocbreak();
+        stdscr.keypad(0);
         curses.echo()
         curses.endwin()
         sys.exit()

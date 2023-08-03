@@ -12,13 +12,13 @@ o_step_c14=16
 o_dir_c14=13
 o_enable_c14=22
 #
-#  DC command 
+#  DC command
 #
 O_focus_in=7
 O_focus_out=12
 #
 # pad input buttons :
-# 
+#
 I_focus_in=16
 I_focus_out=20
 #

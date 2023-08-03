@@ -15,7 +15,7 @@ pidserver=$(pidof -x -o %PPID "${servername}")
 
 if test -n "$piddaemon"; then
     #
-    # relayd is already running 
+    # relayd is already running
     #
     #
     # First check if initialisation has been done :
@@ -54,8 +54,8 @@ if test -n "$piddaemon"; then
 
         "stop")
             rdaemonlog " TERMing daemon $piddaemon"
-            echo kill $piddaemon 
-            kill $piddaemon 
+            echo kill $piddaemon
+            kill $piddaemon
             echo killall $servername
             killall $servername
             ;;

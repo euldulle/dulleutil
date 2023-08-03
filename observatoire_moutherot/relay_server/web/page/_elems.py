@@ -5,7 +5,7 @@
 import cgi
 import os
 import sys
-import subprocess 
+import subprocess
 
 sys.path.append(os.path.dirname(__file__)+"/../../websys")
 from params import Params
@@ -41,13 +41,13 @@ class RelServPage:
         #html += "<h1>"+self.prodName()+" : "+self.getTitle()+"</h1>\n\n"
         html += '</div>\n'
         html += '</div>\n'
-        
-        
+
+
 #       html += '<div class="logobox">\n'
 #       html += '<img src="/images/logoltfb.png">\n'
 #       html += '<img src="/images/logo-gorgy-timing-fr-rvb.png">\n'
 #       html += '</div>\n'
-        
+
         html += '<div id="wrap">\n'
 
 #       html += '<div class="menu">\n'
@@ -67,7 +67,7 @@ class RelServPage:
         html += "</html>\n"
 
         return self.getHeaders()+"\n"+html
-    
+
     def getRefreshSeconds(self):
         return 30
 
@@ -90,7 +90,7 @@ class RelServPage:
             pass
 
         return '<div><label for="'+fname+'">'+label+' :</label><span id="'+fname+'" class="'+classes+'">'+cgi.escape(content.strip())+'</span></div>\n'
-    
+
     def cmd_syref_env(self, sy_cmd, *args) : #execute les commandes specifiques inclueses dans syref_env.sh
         cmd = 'source /etc/profile.d/syref_env.sh ; ' + sy_cmd + ' ' + ' '.join([str(i) for i in args])
         return os.popen(cmd)

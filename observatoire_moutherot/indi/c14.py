@@ -18,7 +18,7 @@ stdscr.addstr(0,0,s,curses.A_REVERSE)
 s="  POS(um)  INC (um) "
 stdscr.addstr(1,1,s,curses.A_BOLD)
 
-step_scale=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000] 
+step_scale=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000]
 max_range=12
 step_range=0
 step_inc=1
@@ -44,9 +44,9 @@ GPIO.setmode(GPIO.BCM)
 #
 # GPIO pin dir settings
 #
-GPIO.setup(o_step_c14, GPIO.OUT) 
-GPIO.setup(o_dir_c14, GPIO.OUT) 
-GPIO.setup(o_enable_c14, GPIO.OUT) 
+GPIO.setup(o_step_c14, GPIO.OUT)
+GPIO.setup(o_dir_c14, GPIO.OUT)
+GPIO.setup(o_enable_c14, GPIO.OUT)
 #
 # GPIO pin init
 #
@@ -79,35 +79,35 @@ except ImportError:
 #       finally:
 #           termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
 #       return ch
- 
+
 #
-# Init No key press 
+# Init No key press
 #
 keycode = None
 
 #
 # Threaded kb lookup
-# 
+#
 def keypress():
     global keycode
     keycode = ord(getch())
- 
+
 _thread.start_new_thread(keypress, ())
 
 def do_move():
     global step_scale, step_range, step_inc, delay_step, step_pos, backlash_param, old_dir, ustep_count
-    
+
     GPIO.output(o_enable_c14,GPIO.LOW)
-    
+
     count=usteps_per_um*step_scale[step_range]
     if old_dir!=step_inc:
         count=count+backlash_param
     old_dir=step_inc
     if step_inc==1:
-        GPIO.output(o_dir_c14, GPIO.LOW) 
+        GPIO.output(o_dir_c14, GPIO.LOW)
     else:
-        GPIO.output(o_dir_c14, GPIO.HIGH) 
-    
+        GPIO.output(o_dir_c14, GPIO.HIGH)
+
     while count>0:
         count=count-1
         GPIO.output(o_step_c14, GPIO.HIGH)
@@ -119,7 +119,7 @@ def do_move():
     GPIO.output(o_enable_c14,GPIO.LOW)
 #
 #
-# 
+#
 # n=DateTime.now()
 while True:
     if keycode==27:
@@ -141,8 +141,8 @@ while True:
         ustep_count=0
     elif keycode==3:
         termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
-        curses.nocbreak(); 
-        stdscr.keypad(0); 
+        curses.nocbreak();
+        stdscr.keypad(0);
         curses.echo()
         curses.endwin()
         GPIO.cleanup()

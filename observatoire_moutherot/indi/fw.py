@@ -16,11 +16,11 @@ sys.path.insert(0, '/home/fmeyer/bin')
 from gpio_filter_assignments import *
 statusword=""
 #
-def stepper_driver_on(onoff):  
+def stepper_driver_on(onoff):
     pass
     # FIXME
     # http://localhost:8028/page/relays.py?switch=http://192.168.0.28/30/01
-    
+
 def update_statefile(status):
     with open(olm_fw_statefile,"w") as f:
         print ("%d %s %s"%(filter_index,olm_fw_filters[filter_index],status),file=f)
@@ -48,8 +48,8 @@ def clean_exit(signum, frame):
     pwr_stepper("OFF")
 
     if interactive:
-        curses.nocbreak(); 
-        stdscr.keypad(0); 
+        curses.nocbreak();
+        stdscr.keypad(0);
         curses.echo()
         curses.endwin()
     # termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
@@ -74,19 +74,19 @@ def getch():   # define non-Windows version
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
     return ch
- 
+
 #
-# Init No key press 
+# Init No key press
 #
 keycode = None
 
 #
 # Threaded kb lookup
-# 
+#
 def keypress():
     global keycode
     keycode = ord(getch())
- 
+
 def check_reed():
     global fail_count, statusword
 #
@@ -114,9 +114,9 @@ def next():
         do_step(out_steps)
         do_move(reed_sensor_off)
         do_step(align_steps-40)
-    else: 
+    else:
         do_step(align_steps)
-    filter_index=1+(filter_index)%5 
+    filter_index=1+(filter_index)%5
 
 def seek_index(target):
     global filter_index, fail_count
@@ -130,14 +130,14 @@ def status_line(message=""):
         s="@ Filter_index %.1d  @\n @ Step_pos %.5d@\n @ %s @\n @ Reed : %.1d @\n @ %s @\n"%(filter_index, step_pos, olm_fw_filters[filter_index], reed_state , message)
         stdscr.addstr(3,1,s,curses.color_pair(filter_index))
         stdscr.refresh()
-   
+
 def do_step(nb_step=1):
     global step_pos, delay_step, delay_steplow, reed_state
-    
+
     GPIO.output(o_enable_fw, GPIO.LOW)
     for i in range (0,nb_step):
         # on incremente et on envoie un pas
-        # 
+        #
         step_pos=step_pos+1
         # print ("step %d/reed %d\r"%(step_pos,reed_state))
 
@@ -154,14 +154,14 @@ def do_move(wait_for):
 
     #
     # step_inc est le sens de rotation
-    # la transmission est telle qu'il n'y a 
-    # qu'un sens qui fonctionne donc c'est plus simple 
+    # la transmission est telle qu'il n'y a
+    # qu'un sens qui fonctionne donc c'est plus simple
     # step_inc vaut toujours 1
     #
     if step_inc==1:
-        GPIO.output(o_dir_fw, GPIO.LOW) 
+        GPIO.output(o_dir_fw, GPIO.LOW)
     else:
-        GPIO.output(o_dir_fw, GPIO.HIGH) 
+        GPIO.output(o_dir_fw, GPIO.HIGH)
 
     stop=False
     step_pos=0
@@ -174,11 +174,11 @@ def do_move(wait_for):
         #do_step(1)
         status_line()
         #
-        # si l'etat du reed sensor est ce qu'on attend, 
+        # si l'etat du reed sensor est ce qu'on attend,
         #
         reed_state=GPIO.input(o_sensor_fw)
         counter=0
-        while reed_state==wait_for and counter <3: 
+        while reed_state==wait_for and counter <3:
             #
             # alors on envoie un pas de plus pour etre sur
             # qu'on n'a pas choppe un glitch :
@@ -194,12 +194,12 @@ def do_move(wait_for):
 
     if step_pos>=LIMIT:
         fail_count=fail_count+1
-                
+
     return step_pos
 
 #
 ################################################
-# 
+#
 ################################################
 
   ####    #####    ##    #####    #####
@@ -220,7 +220,7 @@ except:
 filter_index=0
 fail_count=0
 
-# olm_fw_fifoname is now defined in gpio_filter_assignments 
+# olm_fw_fifoname is now defined in gpio_filter_assignments
 # olm_fw_fifoname="/home/fmeyer/indi/fwfifo"
 
 try:
@@ -268,7 +268,7 @@ old_dir=1
 step_pos=0
 frequency=1600 # en Hz
 duty_cycle=0.25
-delay_step=duty_cycle/frequency 
+delay_step=duty_cycle/frequency
 delay_steplow=(1.-duty_cycle)/frequency
 delay_steplow=delay_step
 usteps_per_step=8
@@ -279,7 +279,7 @@ out_steps=160
 #
 # GPIO pin assingnment in file piobs_gpio_assignments.py
 #
-GPIO.setwarnings(False) 
+GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
 #
@@ -287,24 +287,24 @@ GPIO.setmode(GPIO.BCM)
 # GPIO pin dir settings
 #
 try:
-    GPIO.setup(o_step_fw, GPIO.OUT) 
-except: 
+    GPIO.setup(o_step_fw, GPIO.OUT)
+except:
     old_dir=1
 
 try:
-    GPIO.setup(o_dir_fw, GPIO.OUT) 
-except: 
+    GPIO.setup(o_dir_fw, GPIO.OUT)
+except:
     old_dir=1
 
 try:
     GPIO.setup(o_enable_fw, GPIO.OUT)
-except: 
+except:
     old_dir=1
 
 try:
     GPIO.setup(o_sensor_fw, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     #GPIO.setup(o_sensor_fw, GPIO.IN)
-except: 
+except:
     old_dir=1
     sys.exit()
 #
@@ -323,7 +323,7 @@ if interactive:
     initial_settings = termios.tcgetattr(fd)
     _thread.start_new_thread(keypress, ())
 
-# olm_fw_statefile is now defined in gpio_filter_assignments 
+# olm_fw_statefile is now defined in gpio_filter_assignments
 # olm_fw_statefile="/home/fmeyer/filter_wheel_state"
 try:
     with open(olm_fw_statefile,"r") as f:
@@ -386,11 +386,11 @@ while True:
                     seek_index(filter_index%5+1)
                 elif keycode==66 or keycode==68: # down / left
                     seek_index((filter_index-2)%5+1)
-                elif keycode==49: # 
+                elif keycode==49: #
                     keycode=ord(getch())
                     if keycode==126:   # home
                         seek_index(1)
-                elif keycode==52: # 
+                elif keycode==52: #
                     keycode=ord(getch())
                     if keycode==126:   # end
                         seek_index(5)
@@ -428,7 +428,7 @@ while True:
         else:
             raise  # something else has happened -- better reraise
 
-    if string is None or string == "": 
+    if string is None or string == "":
         index=filter_index
     else:
         try:
