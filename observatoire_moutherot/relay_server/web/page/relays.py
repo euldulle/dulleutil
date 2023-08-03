@@ -9,7 +9,7 @@ import os
 import requests
 import urllib
 import urllib.request
-from time import sleep 
+from time import sleep
 from re import sub
 
 class RelayPage(RelServPage):
@@ -47,13 +47,13 @@ class RelayPage(RelServPage):
        )
 
     delay=1.0
-  
+ 
     def pageID(self):
         return 'relay'
 
     def getTitle(self):
         return '16 port'
-        
+       
     def sessionControl(self):
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Session control</font></th></tr></thead>\n'
@@ -75,12 +75,12 @@ class RelayPage(RelServPage):
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Indi server/driver</font></th></tr></thead>\n'
         #self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (192.168.0.26 off ?)</font></td>\n'
         if True:
-            p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_indi_status'],stdout=subprocess.PIPE,shell=True) 
+            p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_indi_status'],stdout=subprocess.PIPE,shell=True)
             if p.stdout.readline().decode('utf-8').rstrip() == "notup":
                 self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (192.168.0.26 off ?)</font></td>\n'
             else:
                 for line in p.stdout:
-                    sline=line.decode('utf-8') 
+                    sline=line.decode('utf-8')
                     indistatus=sline.split()
 
                     cyclecom='olm_in_cycle %s'%(indistatus[0])
@@ -88,12 +88,12 @@ class RelayPage(RelServPage):
                     startcom='olm_in_start %s'%(indistatus[0])
 
                     self.status += '<tr><td> <font color="#0000FF">'+indistatus[0]+'</font></td>\n'
-                    
+                   
                     if  (indistatus[2] == 'not_running'):
                         self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
                     else:
                         self.status += '<td><font color="#00B000">'+indistatus[2] + '</font></td>\n'
-                       
+                      
 
                     if  (indistatus[2] == 'not_running'):
                         self.status += '<td style="text-align:center;" colspan=2> <a href="/page/relays.py?indicom=olm_in_start&inditarget='+indistatus[0]+'">Start</a></td>\n'
@@ -133,7 +133,7 @@ class RelayPage(RelServPage):
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
 
-        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_indicmd olm_fw_get'],stdout=subprocess.PIPE,shell=True) 
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_indicmd olm_fw_get'],stdout=subprocess.PIPE,shell=True)
         fwline=p.stdout.readline().decode('utf-8').rstrip()
         if fwline == "notup" or fwline == "" or fwline == None:
             self.status += '<tr><td colspan="2">\n'
@@ -150,7 +150,7 @@ class RelayPage(RelServPage):
 
             self.status += ('<tr><td>Current : </td><td> <font color="'
                     +filt['color']+'">'+filt['filter']+'</font></td></tr>\n')
-            
+           
 #               if  (fwstatus[2] == 'not_running'):
 #                   self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
 #               else:
@@ -164,7 +164,7 @@ class RelayPage(RelServPage):
                         self.status += '<font color="'+filt['color']+'">'+filt['filter']+'</font></td>'
                     else:
                         self.status += '<a href="/page/relays.py?fwset='+pos+'" style="color: '+f['color']+'">'+f['filter']+'</font></a></td>'
-    
+   
             self.status += '</tr>\n'
 
         self.status += '</table>'
@@ -181,7 +181,7 @@ class RelayPage(RelServPage):
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="2" align="center"> <font color="#444488"> 16-RELAY BOX</font></th></tr></thead>\n'
         self.lines=[]
-        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_relay_state 16'],stdout=subprocess.PIPE,shell=True) 
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_relay_state 16'],stdout=subprocess.PIPE,shell=True)
         #
         # Output of the command :
         #   get_relay_state.bash 16
@@ -206,7 +206,7 @@ class RelayPage(RelServPage):
 
         if p.stdout.readline().decode('utf-8').rstrip()== "OK":
             for line in p.stdout:
-                sline=line.decode('utf-8') 
+                sline=line.decode('utf-8')
                 splitrelay=sline.split()
                 relay=splitrelay[0]
                 state=splitrelay[1]
@@ -219,28 +219,28 @@ class RelayPage(RelServPage):
                     color='<font color="#FF0000">OFF</font>'
 
                 switchref=splitrelay[2]
-                # sort=sorted(self.relays, key=lambda k: k['affect']) 
+                # sort=sorted(self.relays, key=lambda k: k['affect'])
                 for rel in self.relays:
                     if relay in rel.values():
                         if (rel['affect']!="NA"):
                             #
-                            # on ignore les relais non affectes 
+                            # on ignore les relais non affectes
                             # rappel structure dictionnaire self.relays :
                             # {'relais':'Relay-01:',    nom du relais
                             #  'rank': '06',            son rang dans la page affichee
                             #  'affect': 'FW Stepper',  son affectation
                             #  'type': "cons"}          son type (cons (switch) ou temp (push))
 
-                            newline=('<tr><td title="' 
-                                + rel['rank'] 
-                                + '"><a href="/page/relays.py?switch=' 
-                                + switchref 
-                                + '">\n' 
+                            newline=('<tr><td title="'
+                                + rel['rank']
+                                + '"><a href="/page/relays.py?switch='
+                                + switchref
+                                + '">\n'
                                 + rel['affect'] +'</a>\n')
                             if (rel['affect']=="Open  Roof" or rel['affect']=="Close Roof"):
                                 #
                                 # pour les actions open et close roof, on prévoit une
-                                # version normale (une seule action start) 
+                                # version normale (une seule action start)
                                 # et une version courte (une action start suivie d'une action stop)
                                 newline +=('<a title="short" href="/page/relays.py?switch='
                                             + switchref
@@ -256,7 +256,7 @@ class RelayPage(RelServPage):
                 self.status += line
         else:
             self.status += '<tr><td colspan="2"> <font color="#FF0000">cant get 16-relay status</font></td></tr>\n'
-           
+          
         self.status += '</table><br>\n'
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="2" align="center"> <font color="#444488"> 8-RELAY BOX</font></th></tr></thead>\n'
@@ -264,7 +264,7 @@ class RelayPage(RelServPage):
         #
         # getting status from kmtronic box, the bulgarian one
         #
-        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_relay_state 8'],stdout=subprocess.PIPE,shell=True) 
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_relay_state 8'],stdout=subprocess.PIPE,shell=True)
         etat=p.stdout.readline().decode('utf-8').rstrip()
         if etat == "OK":
             line=p.stdout.readline()
@@ -307,8 +307,8 @@ class RelayPage(RelServPage):
         if "session" in form:
             action=form.getvalue('session')
             if action == "coldstart":
-                command='olm_cold_init force' 
-                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                command='olm_cold_init force'
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 form['session'].value='None'
                 sleep(self.delay)
 
@@ -324,8 +324,8 @@ class RelayPage(RelServPage):
                 sleep(self.delay)
 
             if action == "timesync-eq8":
-                command=Params.getObslmDir()+'obslm.bash olm_indicmd olm_in_sync_eq8_time' 
-                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                command=Params.getObslmDir()+'obslm.bash olm_indicmd olm_in_sync_eq8_time'
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 form['session'].value='None'
                 sleep(self.delay)
 
@@ -339,7 +339,7 @@ class RelayPage(RelServPage):
                     # if url is just an int then its a command for 8-relay Box
                     switch8=int(url)
                     newurl=self.kmtronic_switch+url
-                    p=subprocess.Popen(['wget -O/dev/null >/dev/null 2>/dev/null '+ newurl],stdout=subprocess.PIPE,shell=True) 
+                    p=subprocess.Popen(['wget -O/dev/null >/dev/null 2>/dev/null '+ newurl],stdout=subprocess.PIPE,shell=True)
                 except:
                     #
                     # address the 16-switch actions
@@ -348,7 +348,7 @@ class RelayPage(RelServPage):
                     urllib.request.urlretrieve(url,filename="/dev/null")
                     request = url[-2:]
                     intreq = int(request)
-                    
+                   
                     rel = self.relays[int(intreq/2)]
                     if rel['type'] == 'temp':
                         if intreq % 2 == 0:
@@ -384,7 +384,7 @@ class RelayPage(RelServPage):
                 if (target  == "indi"):
                     command=Params.getObslmDir()+'obslm.bash olm_indicmd sudo poweroff'
 
-                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 sleep(self.delay)
 
             except:
@@ -403,7 +403,7 @@ class RelayPage(RelServPage):
                 if (target  == "indi"):
                     command=Params.getObslmDir()+'obslm.bash olm_indicmd sudo reboot'
 
-                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 sleep(self.delay)
 
             except:
@@ -420,7 +420,7 @@ class RelayPage(RelServPage):
                 if (target >0 and target <6):
                     command=Params.getObslmDir()+"obslm.bash olm_indicmd olm_fw_set %d"%target
 
-                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 sleep(2)
 
             except:
