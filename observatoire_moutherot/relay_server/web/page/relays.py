@@ -58,6 +58,8 @@ class RelayPage(RelServPage):
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Session control</font></th></tr></thead>\n'
 
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=coldstart" title="Init session">'
+        self.status += '<font color="#0000FF">Init session</font></a></td></tr>'
         self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=shutdown" title="Shutting down everything">'
         self.status += '<font color="#0000FF">Shutdown</font></a></td></tr>'
         self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=timesync-eq8" title="sync mount to UTC">'
@@ -71,19 +73,19 @@ class RelayPage(RelServPage):
         #
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Indi server/driver</font></th></tr></thead>\n'
-        #self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (oid off ?)</font></td>\n'
+        #self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (192.168.0.26 off ?)</font></td>\n'
         if True:
             p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_indi_status'],stdout=subprocess.PIPE,shell=True) 
             if p.stdout.readline().decode('utf-8').rstrip() == "notup":
-                self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (oid off ?)</font></td>\n'
+                self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (192.168.0.26 off ?)</font></td>\n'
             else:
                 for line in p.stdout:
                     sline=line.decode('utf-8') 
                     indistatus=sline.split()
 
-                    cyclecom='in_cycle %s'%(indistatus[0])
-                    stopcom='in_stop %s'%(indistatus[0])
-                    startcom='in_start %s'%(indistatus[0])
+                    cyclecom='olm_in_cycle %s'%(indistatus[0])
+                    stopcom='olm_in_stop %s'%(indistatus[0])
+                    startcom='olm_in_start %s'%(indistatus[0])
 
                     self.status += '<tr><td> <font color="#0000FF">'+indistatus[0]+'</font></td>\n'
                     
@@ -94,10 +96,10 @@ class RelayPage(RelServPage):
                        
 
                     if  (indistatus[2] == 'not_running'):
-                        self.status += '<td style="text-align:center;" colspan=2> <a href="/page/relays.py?indicom=in_start&inditarget='+indistatus[0]+'">Start</a></td>\n'
+                        self.status += '<td style="text-align:center;" colspan=2> <a href="/page/relays.py?indicom=olm_in_start&inditarget='+indistatus[0]+'">Start</a></td>\n'
                     else:
-                        self.status += '<td > <a href="/page/relays.py?indicom=in_stop&inditarget='+indistatus[0]+'">Stop</a></td>\n'
-                        self.status += '<td > <a href="/page/relays.py?indicom=in_cycle&inditarget='+indistatus[0]+'">Cycle</a></td>\n'
+                        self.status += '<td > <a href="/page/relays.py?indicom=olm_in_stop&inditarget='+indistatus[0]+'">Stop</a></td>\n'
+                        self.status += '<td > <a href="/page/relays.py?indicom=olm_in_cycle&inditarget='+indistatus[0]+'">Cycle</a></td>\n'
                     self.status += '</tr>\n'
         self.status += '</table>\n'
         self.status += '<br/>\n'
@@ -114,8 +116,8 @@ class RelayPage(RelServPage):
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Single boards control</font></th></tr></thead>\n'
 
         self.status += '<tr><td colspan="2"><font color="#008000">Oid</font></td>'
-        self.status += '<td style="text-align:center;"><a href="/page/relays.py?reboot=oid"><font color="#0000FF">reboot</font></a></td>'
-        self.status += '<td style="text-align:center;"><a href="/page/relays.py?shutdown=oid">shutdown</a></td></tr>\n'
+        self.status += '<td style="text-align:center;"><a href="/page/relays.py?reboot=indi"><font color="#0000FF">reboot</font></a></td>'
+        self.status += '<td style="text-align:center;"><a href="/page/relays.py?shutdown=indi">shutdown</a></td></tr>\n'
 
         self.status += '</table>'
         self.status += '<br/>\n'
@@ -131,11 +133,11 @@ class RelayPage(RelServPage):
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
 
-        p=subprocess.Popen(['timeout 5 ssh -o ConnectTimeout=1 oid fw_get'],stdout=subprocess.PIPE,shell=True) 
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_indicmd olm_fw_get'],stdout=subprocess.PIPE,shell=True) 
         fwline=p.stdout.readline().decode('utf-8').rstrip()
         if fwline == "notup" or fwline == "" or fwline == None:
             self.status += '<tr><td colspan="2">\n'
-            self.status += '<font color="#FF0000">cant get fw status (oid off ?)</font></td>\n'
+            self.status += '<font color="#FF0000">cant get fw status (192.168.0.26 off ?)</font></td>\n'
         else:
             fwstatus=fwline.split()
             self.status += '<tr><td colspan="2">\n'
@@ -304,6 +306,12 @@ class RelayPage(RelServPage):
 
         if "session" in form:
             action=form.getvalue('session')
+            if action == "coldstart":
+                command='olm_cold_init force' 
+                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
+                form['session'].value='None'
+                sleep(self.delay)
+
             if action == "shutdown":
                 page += '<div> Shutdown everything <a href=/page/realys.py?session=shutdown-confirm>Confirm</a></div>'
                 page += '</div>'
@@ -313,10 +321,10 @@ class RelayPage(RelServPage):
                 page += '<div> Shutdown everything <a href=/page/realys.py?session=shutdown-confirm>Confirm</a></div>'
                 page += '</div>'
                 p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_session_shutdown'],stdout=subprocess.PIPE,shell=True)  #FIXME
-                return page
+                sleep(self.delay)
 
             if action == "timesync-eq8":
-                command='timeout 5 ssh -o ConnectTimeout=1 oid ./indi_env.sh in_sync_eq8_time' 
+                command=Params.getObslmDir()+'obslm.bash olm_indicmd olm_in_sync_eq8_time' 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 form['session'].value='None'
                 sleep(self.delay)
@@ -371,13 +379,10 @@ class RelayPage(RelServPage):
             try:
                 target=form.getvalue('shutdown')
                 if (target  == "pio"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 pio sudo poweroff' 
+                    command='sudo poweroff' 
 
-                if (target  == "oid"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 oid sudo poweroff' 
-
-                if (target  == "session"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 oid sudo poweroff' 
+                if (target  == "indi"):
+                    command='obslm.bash olm_indicmd sudo poweroff' 
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
@@ -395,8 +400,8 @@ class RelayPage(RelServPage):
                 if (target  == "pio"):
                     command='timeout 5 ssh -o ConnectTimeout=1 pio sudo reboot' 
 
-                if (target  == "oid"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 oid sudo reboot' 
+                if (target  == "indi"):
+                    command='timeout 5 ssh -o ConnectTimeout=1 192.168.0.26 sudo reboot' 
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
@@ -412,7 +417,7 @@ class RelayPage(RelServPage):
             try:
                 target=form.getvalue('sync')
                 if (target  == "oid"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 oid ./indi_env.sh in_sync_eq8_time' 
+                    command='timeout 5 ssh -o ConnectTimeout=1 192.168.0.26 ./indi_env.sh in_sync_eq8_time' 
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
@@ -429,7 +434,7 @@ class RelayPage(RelServPage):
                 target=int(form.getvalue('fwset'))
 
                 if (target >0 and target <6):
-                    command="timeout 5 ssh -o ConnectTimeout=1 oid fw_set %d"%target 
+                    command="timeout 5 ssh -o ConnectTimeout=1 192.168.0.26 olm_fw_set %d"%target 
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(2)
@@ -450,9 +455,9 @@ class RelayPage(RelServPage):
                     inditarget=''
                 if (inditarget == None):
                     inditarget=''
-                command='timeout 5s ssh -o ConnectTimeout=1 oid '+ indicom 
+                command='timeout 5s ssh -o ConnectTimeout=1 192.168.0.26 '+ indicom 
                 print(command)
-                command='ssh oid '+ indicom + ' ' + inditarget 
+                command='ssh 192.168.0.26 '+ indicom + ' ' + inditarget 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 if p.returncode !=0:
                     p=False

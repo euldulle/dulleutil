@@ -8,47 +8,29 @@ fi
 
 source $HOME/observatoire_moutherot/obslm.bash
 
-daemonlog "$0  daemon pid"
-read a b pid <<< $(. /home/fmeyer/.ssh/environment)
-
-daemonlog "$0  configuring ssh agent and key"
-if ! test "$(pidof ssh-agent)" = "$pid"; then
-    killall ssh-agent
-    rm $HOME/.ssh/environment
-    /usr/bin/ssh-agent >/home/fmeyer/.ssh/environment 
-fi
-
-. /home/fmeyer/.ssh/environment >/dev/null 2>&1
-/usr/bin/ssh-add /home/fmeyer/.ssh/obsm >/dev/null 2>&1
-
 servername="relay_server.py"
 
 piddaemon=$(pidof -x -o %PPID "relayd")
 pidserver=$(pidof -x -o %PPID "${servername}")
-daemonlog "testing daemon pid"
 
 if test -n "$piddaemon"; then
     #
     # relayd is already running 
     #
-    daemonlog " initialising 8 port (KMTronic) relay box "
-
     #
     # First check if initialisation has been done :
     #   if not, do it once for each relay box:
-    if test -n "$OLM_R8_SEM"; then
-        if ! test -f "$OLM_R8_SEM"; then
-            daemonlog " initialising 8 port (KMTronic) relay box "
-            olm_init_r8_full
-            # wait for relay 16 to come uppp properly
-            sleep 10
-            touch $OLM_R8_SEM
-            if test -n "$OLM_R16_SEM"; then
-                if ! test -f "$OLM_R16_SEM"; then
-                    daemonlog " initialising 16 port (chinese) relay box "
-                    olm_init_r16_full
-                    touch $OLM_R16_SEM
-                fi
+    if ! test -f "$OLM_R8_SEM"; then
+        daemonlog " initialising 8 port (KMTronic) relay box "
+        olm_init_r8_full
+        # wait for relay 16 to come uppp properly
+        sleep 10
+        touch $OLM_R8_SEM
+        if test -n "$OLM_R16_SEM"; then
+            if ! test -f "$OLM_R16_SEM"; then
+                daemonlog " initialising 16 port (chinese) relay box "
+                olm_init_r16_full
+                touch $OLM_R16_SEM
             fi
         fi
     fi
@@ -81,7 +63,7 @@ if test -n "$piddaemon"; then
     exit
 else
     case "$1" in
-        "status")
+        status)
             echo daemon is not running
             if test -n "$pidserver"; then
                 echo server pid = $pidserver
@@ -93,7 +75,7 @@ else
         start|restart)
             daemonlog " Daemon is not running, starting it.";;
 
-        "stop")
+        stop)
             echo " Daemon is not running, killing server"
             if pidserver=$(pidof -x -o %PPID "${servername}"); then
                 daemonlog " killing server $pidserver"
@@ -120,5 +102,5 @@ else
             sleep 1
         fi
     done) &
-    disown
+   disown
 fi

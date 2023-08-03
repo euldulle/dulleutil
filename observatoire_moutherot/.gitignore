@@ -1,1 +1,4 @@
 log/*
+__pycache__/
+indi/run/*
+indi/log/*
