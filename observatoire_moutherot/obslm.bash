@@ -27,8 +27,8 @@ export INDIBIN=$INDIROOT/bin
 export INDIRSC=$INDIROOT/indi
 export INDIRUN=$INDIRSC/run
 export INDILOGDIR=$INDIRSC/log
-export INDISERVERLOG=$INDILOGDIR/server.log
-export INDIFIFO=$INDIROOT/indififo
+export OLM_INDISERVERLOG=$INDILOGDIR/server.log
+export OLM_INDIFIFO=$INDIROOT/indififo
 export INDIWRAPLOG=$INDIRSC/wraplog
 export INDIWRAPPIDFILE=$INDIRUN/wrap.pid
 export INDISERVPIDFILE=$INDIRUN/indiserver.pid
@@ -447,7 +447,7 @@ olm_in_dname(){
 olm_in_wrap(){
     #
     # if arg 1 is "init" then localdrivers listed in INDILOCALDRIVERS
-    # wille be initialized
+    # will be initialized
     #
     if [[ "$1" == "init" ]]; then
         olm_in_start_all
@@ -455,7 +455,7 @@ olm_in_wrap(){
     }
 
 olm_in_killserv(){
-    echo killing server $(cat $INDISERVPIDFILE) |tee -a $INDISERVERLOG
+    echo killing server $(cat $INDISERVPIDFILE) |tee -a $OLM_INDISERVERLOG
     kill $(cat "$INDISERVPIDFILE")
     rm $INDISERVPIDFILE
     }
@@ -468,7 +468,7 @@ olm_in_killdrivers(){
     }
 
 olm_in_killall(){
-    echo killing wrapper $(cat $INDIWRAPPIDFILE) |tee -a $INDISERVERLOG
+    echo killing wrapper $(cat $INDIWRAPPIDFILE) |tee -a $OLM_INDISERVERLOG
     kill -INT $(cat "$INDIWRAPPIDFILE")
     rm $INDIWRAPPIDFILE
     rm $INDISERVPIDFILE
@@ -480,16 +480,16 @@ olm_in_start(){
     olm_in_log ${FUNCNAME[0]}
     olm_in_dname $1
     if [[ $driver == "fw.py" ]]; then
-        nohup $INDIBIN/$driver daemon >> $INDISERVERLOG 2>&1 &
+        nohup $INDIBIN/$driver daemon >> $OLM_INDISERVERLOG 2>&1 &
     else
         if [[ "$driver" == "indiserver" ]]; then
-            nohup /usr/bin/indiserver -f $INDIFIFO >> $INDISERVERLOG 2>&1 &
+            nohup /usr/bin/indiserver -f $OLM_INDIFIFO >> $OLM_INDISERVERLOG 2>&1 &
         else
             pid=$(pidof $driver)
             if [[ $? != 0 ]]; then
-                echo start $driver |tee -a $INDIFIFO
+                echo start $driver |tee -a $OLM_INDIFIFO
                 driverpid=$(pidof $driver)
-                echo $driver running : $driverpid |tee -a $INDISERVERLOG
+                echo $driver running : $driverpid |tee -a $OLM_INDISERVERLOG
                 echo -n "$driverpid " >> $INDIRUN/$driver.pid
             else
                 echo existing driver $driver pid $pid
@@ -575,7 +575,7 @@ olm_in_stop(){
             olm_in_stop_all
         else
             olm_in_log stopping $driver
-            echo stop $driver |tee $INDIFIFO
+            echo stop $driver |tee $OLM_INDIFIFO
         fi
     fi
     olm_in_log /${FUNCNAME[0]}
