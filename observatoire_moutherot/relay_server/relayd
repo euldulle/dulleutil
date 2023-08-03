@@ -21,14 +21,14 @@ if test -n "$piddaemon"; then
     # First check if initialisation has been done :
     #   if not, do it once for each relay box:
     if ! test -f "$OLM_R8_SEM"; then
-        daemonlog " initialising 8 port (KMTronic) relay box "
+        rdaemonlog " initialising 8 port (KMTronic) relay box "
         olm_init_r8_full
         # wait for relay 16 to come uppp properly
         sleep 10
         touch $OLM_R8_SEM
         if test -n "$OLM_R16_SEM"; then
             if ! test -f "$OLM_R16_SEM"; then
-                daemonlog " initialising 16 port (chinese) relay box "
+                rdaemonlog " initialising 16 port (chinese) relay box "
                 olm_init_r16_full
                 touch $OLM_R16_SEM
             fi
@@ -46,14 +46,14 @@ if test -n "$piddaemon"; then
 
         "restart")
             if pidserver=$(pidof -x -o %PPID "${servername}"); then
-                daemonlog " killing server $pidserver"
+                rdaemonlog " killing server $pidserver"
                 kill $pidserver
             else
-                daemonlog " no server ${servername} running..."
+                rdaemonlog " no server ${servername} running..."
             fi;;
 
         "stop")
-            daemonlog " TERMing daemon $piddaemon"
+            rdaemonlog " TERMing daemon $piddaemon"
             echo kill $piddaemon 
             kill $piddaemon 
             echo killall $servername
@@ -73,12 +73,12 @@ else
             exit ;;
 
         start|restart)
-            daemonlog " Daemon is not running, starting it.";;
+            rdaemonlog " Daemon is not running, starting it.";;
 
         stop)
             echo " Daemon is not running, killing server"
             if pidserver=$(pidof -x -o %PPID "${servername}"); then
-                daemonlog " killing server $pidserver"
+                rdaemonlog " killing server $pidserver"
                 kill $pidserver
             else
                 echo " No server ${servername} to kill"
@@ -97,7 +97,7 @@ else
             # server is running wait 10 s and go on
             sleep 10
         else
-            daemonlog "(re)starting $servername"
+            rdaemonlog "(re)starting $servername"
             ./$servername >>$OLM_SERVERLOG 2>&1
             sleep 1
         fi

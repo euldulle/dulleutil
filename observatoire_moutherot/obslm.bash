@@ -3,7 +3,8 @@ export OLM_HOME="/home/fmeyer/"
 export OLM_ROOT="/home/fmeyer/observatoire_moutherot"
 export OLM_LOGDIR="$OLM_ROOT/log"
 export OLM_LOG="$OLM_LOGDIR/olm.log"
-export OLM_DAEMONLOG="$OLM_LOGDIR/relayd.log"
+export OLM_RDAEMONLOG="$OLM_LOGDIR/relayd.log"
+export OLM_IDAEMONLOG="$OLM_LOGDIR/indid.log"
 export OLM_SERVERLOG="$OLM_LOGDIR/relayserver.log"
 export OLM_R8_STATE="/tmp/olm_relay8"
 export OLM_R16_STATE="/tmp/olm_relay16"
@@ -11,6 +12,7 @@ export OLM_R8_SEM="/tmp/olm_r8_sem"
 export OLM_R16_SEM="/tmp/olm_r16_sem"
 export OLM_SHUTDOWN_SEM="/tmp/olm_shutdown_sem"
 export OLM_EQ8TSYNC="/tmp/olm_eq8tsynced"
+export OLM_EQ8TNOTSYNC="/tmp/olm_eq8tsyncfailed"
 export OLM_SETTIMEOUT=5
 export OLM_R16TIMEOUT=60
 
@@ -36,8 +38,14 @@ export OLM_PYRSCFILE=$OLM_INDIROOT/gpio_filter_assignments.py
 export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 
-daemonlog(){
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_DAEMONLOG 2>&1
+rdaemonlog(){
+    # logging relayd
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_RDAEMONLOG 2>&1
+}
+
+idaemonlog(){
+    # logging indid
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_IDAEMONLOG 2>&1
 }
 
 olm_log() {
@@ -187,11 +195,22 @@ olm_wait_r16(){
     #
     # this waits forever. Might need FIXME
     #
+    result="1"
+    let count=0
+
     olm_log "    ${FUNCNAME[0]} : waiting for r16 to come up"
     while ! test "$result" = "0"; do
         curl --connect-timeout $OLM_R16TIMEOUT --max-time $OLM_R16TIMEOUT -o /dev/null "${OLM_BASER16}" \
                 >/dev/null 2>/dev/null
         result="$?"
+        let count=$count+1
+        if test "$count" -gt 5; then
+            olm_log "    ${FUNCNAME[0]} : r16 not responding, powercycling it"
+            olm_setr8 R16 0
+            sleep 1
+            olm_setr8 R16 1
+            let count=0
+        fi
     done
     olm_log "    ${FUNCNAME[0]} : r16 is up"
 }
@@ -204,7 +223,7 @@ olm_cold_init(){
         olm_log "  ${FUNCNAME[0]} : starting init sequence"
         olm_init_r8_full
         # allow 60 s for relay16 to come up :
-        if test "$?" ="0"; then
+        if test "$?" = "0"; then
             olm_init_r16_full
             olm_log "  ${FUNCNAME[0]} : init over"
         else
@@ -300,26 +319,26 @@ olm_shutdown_indihost(){
     olm_indicmd "sudo shutdown"
 }
 
-olm_fullshutdown(){ 
+olm_session_shutdown(){
     olm_log "    ${FUNCNAME[0]} : starting full shutdown"
     olm_shutdown_indihost
     sleep 5
     olm_off_r16_full 
     olm_off_r8_full
     olm_log "    ${FUNCNAME[0]} : full shutdown completed"
-    touch $OLM_SHUTDWN_SEM
+    touch $OLM_SHUTDOWN_SEM
 }
 
 olm_indicmd(){
-    olm_log ssh -i $HOME/.ssh/obsm $OLM_INDIHOST $*
-    ssh -i $HOME/.ssh/obsm fmeyer@$OLM_INDIHOST $*
+    olm_log ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 $OLM_INDIHOST $*
+    ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 fmeyer@$OLM_INDIHOST $*
 }
  
 olm_fw_get_filter(){
 
     ping -c 1 -W 1 "$OLM_INDIHOST" >/dev/null 2>&1
     if test "$?" = "0"; then
-        olm_indicmd fw_get
+        olm_indicmd olm_fw_get
     else
         echo "notup"
     fi
@@ -331,7 +350,7 @@ olm_fw_set_filter(){
         if test -n "$1"; then
             olm_indicmd fw_set "$1"
         fi
-        olm_indicmd fw_get
+        olm_indicmd olm_fw_get
     else
         echo "notup"
     fi
@@ -413,16 +432,16 @@ olm_in_log(){
 olm_in_sync_eq8_time(){
     # init time 
     #
-    if ! test -f /tmp/synced; then
+    if ! test -f "$OLM_EQ8TSYNC"; then
         /usr/bin/indi_setprop "EQMod Mount.CONNECTION.CONNECT=On"
         setutc=$(date +"EQMod Mount.TIME_UTC.UTC=%Y-%m-%dT%H:%M:%S;OFFSET=0.00")
         if /usr/bin/indi_setprop "$setutc"; then
             olm_in_log "set EQ8 UTC : $setutc"
-            rm -f /tmp/sync-failed
-            touch /tmp/synced
+            rm -f $OLM_EQ8TNOTSYNC
+            touch $OLM_EQ8TSYNC
         else
-            rm -f /tmp/synced
-            touch /tmp/sync-failed
+            rm -f $OLM_EQ8TSYNC
+            touch $OLM_EQ8TNOTSYNC
         fi
     fi
 }
@@ -440,16 +459,6 @@ olm_in_dname(){
         *) driver="";;
     esac
     export driver
-    }
-
-olm_in_wrap(){
-    #
-    # if arg 1 is "init" then localdrivers listed in OLM_INDILOCALDRIVERS
-    # will be initialized
-    #
-    if [[ "$1" == "init" ]]; then
-        olm_in_start_all
-    fi
     }
 
 olm_in_killserv(){
@@ -477,14 +486,14 @@ olm_in_killall(){
 olm_in_start(){
     olm_in_log ${FUNCNAME[0]}
     olm_in_dname $1
-    if [[ $driver == "fw.py" ]]; then
+    if test "$driver" = "fw.py"; then
         nohup $OLM_INDIROOT/$driver daemon >> $OLM_INDISERVERLOG 2>&1 &
     else
-        if [[ "$driver" == "indiserver" ]]; then
+        if test "$driver" = "indiserver"; then
             nohup /usr/bin/indiserver -f $OLM_INDIFIFO >> $OLM_INDISERVERLOG 2>&1 &
         else
             pid=$(pidof $driver)
-            if [[ $? != 0 ]]; then
+            if ! test "$?" = 0; then
                 echo start $driver |tee -a $OLM_INDIFIFO
                 driverpid=$(pidof $driver)
                 echo $driver running : $driverpid |tee -a $OLM_INDISERVERLOG
