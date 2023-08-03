@@ -1,0 +1,13 @@
+[Unit]
+Description=Starts up indid
+
+[Service]
+Type=oneshot
+ExecStart=/home/fmeyer/observatoire_moutherot/indi/indid start
+ExecStop=/home/fmeyer/observatoire_moutherot/indi/indid stop
+RemainAfterExit=yes
+User=fmeyer
+Group=fmeyer
+
+[Install]
+WantedBy=multi-user.target

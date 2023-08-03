@@ -22,18 +22,16 @@ export OLM_RELAY8PORT="2380"
 export OLM_BASER8="http://fmeyer:4so4xRg9@${OLM_RELAY8IP}:${OLM_RELAY8PORT}/relays.cgi"
 export OLM_BASER16="http://${OLM_RELAY16IP}/30"
 
-export INDIROOT=$OLM_ROOT/indi
-export INDIBIN=$INDIROOT/bin
-export INDIRSC=$INDIROOT/indi
-export INDIRUN=$INDIRSC/run
-export INDILOGDIR=$INDIRSC/log
-export OLM_INDISERVERLOG=$INDILOGDIR/server.log
-export OLM_INDIFIFO=$INDIROOT/indififo
-export INDIWRAPLOG=$INDIRSC/wraplog
-export INDIWRAPPIDFILE=$INDIRUN/wrap.pid
-export INDISERVPIDFILE=$INDIRUN/indiserver.pid
-export INDILOCALDRIVERS=$INDIRSC/indilocaldrivers
-export PYRSCFILE=$INDIBIN/gpio_filter_assignments.py
+export OLM_INDIROOT=$OLM_ROOT/indi
+export OLM_INDIRUN=$OLM_INDIROOT/run
+export OLM_INDILOGDIR=$OLM_INDIROOT/log
+export OLM_INDISERVERLOG=$OLM_INDILOGDIR/server.log
+export OLM_INDIFIFO=$OLM_INDIROOT/indififo
+export OLM_INDIWRAPLOG=$OLM_INDIROOT/wraplog
+export OLM_INDIWRAPPIDFILE=$OLM_INDIRUN/wrap.pid
+export OLM_INDISERVPIDFILE=$OLM_INDIRUN/indiserver.pid
+export OLM_INDILOCALDRIVERS=$OLM_INDIROOT/indilocaldrivers
+export OLM_PYRSCFILE=$OLM_INDIROOT/gpio_filter_assignments.py
 
 export olm_fw_fifoname=$(grep olm_fw_fifoname $PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 export olm_fw_statefile=$(grep olm_fw_statefile $PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
@@ -409,7 +407,7 @@ olm_get_relay_state(){
     }
 
 olm_in_log(){
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$INDIWRAPLOG 2>&1
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_INDIWRAPLOG 2>&1
     }
 
 olm_in_sync_eq8_time(){
@@ -446,7 +444,7 @@ olm_in_dname(){
 
 olm_in_wrap(){
     #
-    # if arg 1 is "init" then localdrivers listed in INDILOCALDRIVERS
+    # if arg 1 is "init" then localdrivers listed in OLM_INDILOCALDRIVERS
     # will be initialized
     #
     if [[ "$1" == "init" ]]; then
@@ -455,23 +453,23 @@ olm_in_wrap(){
     }
 
 olm_in_killserv(){
-    echo killing server $(cat $INDISERVPIDFILE) |tee -a $OLM_INDISERVERLOG
-    kill $(cat "$INDISERVPIDFILE")
-    rm $INDISERVPIDFILE
+    echo killing server $(cat $OLM_INDISERVPIDFILE) |tee -a $OLM_INDISERVERLOG
+    kill $(cat "$OLM_INDISERVPIDFILE")
+    rm $OLM_INDISERVPIDFILE
     }
 
 olm_in_killdrivers(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_stop $driver
-    done <$INDILOCALDRIVERS
+    done <$OLM_INDILOCALDRIVERS
     }
 
 olm_in_killall(){
-    echo killing wrapper $(cat $INDIWRAPPIDFILE) |tee -a $OLM_INDISERVERLOG
-    kill -INT $(cat "$INDIWRAPPIDFILE")
-    rm $INDIWRAPPIDFILE
-    rm $INDISERVPIDFILE
+    echo killing wrapper $(cat $OLM_INDIWRAPPIDFILE) |tee -a $OLM_INDISERVERLOG
+    kill -INT $(cat "$OLM_INDIWRAPPIDFILE")
+    rm $OLM_INDIWRAPPIDFILE
+    rm $OLM_INDISERVPIDFILE
     olm_in_killserv
     olm_in_killdrivers
     }
@@ -480,7 +478,7 @@ olm_in_start(){
     olm_in_log ${FUNCNAME[0]}
     olm_in_dname $1
     if [[ $driver == "fw.py" ]]; then
-        nohup $INDIBIN/$driver daemon >> $OLM_INDISERVERLOG 2>&1 &
+        nohup $OLM_INDIROOT/$driver daemon >> $OLM_INDISERVERLOG 2>&1 &
     else
         if [[ "$driver" == "indiserver" ]]; then
             nohup /usr/bin/indiserver -f $OLM_INDIFIFO >> $OLM_INDISERVERLOG 2>&1 &
@@ -490,7 +488,7 @@ olm_in_start(){
                 echo start $driver |tee -a $OLM_INDIFIFO
                 driverpid=$(pidof $driver)
                 echo $driver running : $driverpid |tee -a $OLM_INDISERVERLOG
-                echo -n "$driverpid " >> $INDIRUN/$driver.pid
+                echo -n "$driverpid " >> $OLM_INDIRUN/$driver.pid
             else
                 echo existing driver $driver pid $pid
             fi
@@ -506,14 +504,14 @@ olm_in_pidof(){
     else
         pid=$(pidof -x $driver -o %PPID)
         if [ "$?" = "0" ]; then
-            echo  $pid >$INDIRUN/$driver.pid
+            echo  $pid >$OLM_INDIRUN/$driver.pid
             if [[ "$2" == "" ]]; then
                 echo $1 $pid
             fi
         else
             echo $1 not_running
-            if test -f $INDIRUN/$driver.pid; then
-                rm -f $INDIRUN/$driver.pid
+            if test -f $OLM_INDIRUN/$driver.pid; then
+                rm -f $OLM_INDIRUN/$driver.pid
             fi
             return 255
         fi
@@ -535,7 +533,7 @@ olm_in_status_all(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         (echo -n "$driver " && olm_in_status $driver)
-    done <$INDILOCALDRIVERS
+    done <$OLM_INDILOCALDRIVERS
     }
 
 olm_in_start_all(){
@@ -544,7 +542,7 @@ olm_in_start_all(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_start $driver
-    done <$INDILOCALDRIVERS
+    done <$OLM_INDILOCALDRIVERS
     olm_in_log /$FUNCNAME{0}
     }
 
@@ -554,7 +552,7 @@ olm_in_stop_all(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_stop $driver
-    done <$INDILOCALDRIVERS
+    done <$OLM_INDILOCALDRIVERS
     olm_in_log Stopping indiserver
     olm_in_killserv 
     olm_in_log Done
@@ -622,7 +620,7 @@ olm_fw_get(){
 }
 
 olm_fw_start(){
-    nohup $INDIBIN/fw.py daemon >/dev/null 2>&1 &
+    nohup $OLM_INDIROOT/fw.py daemon >/dev/null 2>&1 &
 }
 
 olm_fw_stop(){
