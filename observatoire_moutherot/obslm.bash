@@ -9,7 +9,7 @@ export OLM_R8_STATE="/tmp/olm_relay8"
 export OLM_R16_STATE="/tmp/olm_relay16"
 export OLM_R8_SEM="/tmp/olm_r8_sem"
 export OLM_R16_SEM="/tmp/olm_r16_sem"
-export OLM_SHUTDOWN_SEM="/tmp/shutdown_sem"
+export OLM_SHUTDOWN_SEM="/tmp/olm_shutdown_sem"
 export OLM_EQ8TSYNC="/tmp/olm_eq8tsynced"
 export OLM_SETTIMEOUT=5
 export OLM_R16TIMEOUT=60
@@ -33,8 +33,8 @@ export OLM_INDISERVPIDFILE=$OLM_INDIRUN/indiserver.pid
 export OLM_INDILOCALDRIVERS=$OLM_INDIROOT/indilocaldrivers
 export OLM_PYRSCFILE=$OLM_INDIROOT/gpio_filter_assignments.py
 
-export olm_fw_fifoname=$(grep olm_fw_fifoname $PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
-export olm_fw_statefile=$(grep olm_fw_statefile $PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
+export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
+export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 
 daemonlog(){
     date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_DAEMONLOG 2>&1
