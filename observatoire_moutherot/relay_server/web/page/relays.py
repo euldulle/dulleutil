@@ -398,10 +398,10 @@ class RelayPage(RelServPage):
             try:
                 target=form.getvalue('reboot')
                 if (target  == "pio"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 pio sudo reboot' 
+                    command='sudo reboot'
 
                 if (target  == "indi"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 192.168.0.26 sudo reboot' 
+                    command='obslm.bash olm_indicmd sudo reboot'
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
@@ -413,28 +413,12 @@ class RelayPage(RelServPage):
 
             form['reboot'].value='None'
 
-        if "sync" in form:
-            try:
-                target=form.getvalue('sync')
-                if (target  == "oid"):
-                    command='timeout 5 ssh -o ConnectTimeout=1 192.168.0.26 ./indi_env.sh in_sync_eq8_time' 
-
-                p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
-                sleep(self.delay)
-
-            except:
-                page = "sync "
-                page = "Unexpected error:", sys.exc_info()[0]
-                raise
-
-            form['sync'].value='None'
-
         if "fwset" in form:
             try:
                 target=int(form.getvalue('fwset'))
 
                 if (target >0 and target <6):
-                    command="timeout 5 ssh -o ConnectTimeout=1 192.168.0.26 olm_fw_set %d"%target 
+                    command="obslm.bash olm_indicmd olm_fw_set %d"%target
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(2)
@@ -455,9 +439,7 @@ class RelayPage(RelServPage):
                     inditarget=''
                 if (inditarget == None):
                     inditarget=''
-                command='timeout 5s ssh -o ConnectTimeout=1 192.168.0.26 '+ indicom 
-                print(command)
-                command='ssh 192.168.0.26 '+ indicom + ' ' + inditarget 
+                command='obslm.bash olm_indicmd '+ indicom + ' ' + inditarget
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 if p.returncode !=0:
                     p=False
