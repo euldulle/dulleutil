@@ -6,7 +6,7 @@ if ! test -z "$arg"; then
     shift
 fi
 
-source $HOME/observatoire_moutherot/obslm.bash
+source ~fmeyer/observatoire_moutherot/obslm.bash
 
 servername="relay_server.py"
 
