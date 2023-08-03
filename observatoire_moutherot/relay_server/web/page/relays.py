@@ -133,7 +133,7 @@ class RelayPage(RelServPage):
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
 
-        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_indicmd olm_fw_get'],stdout=subprocess.PIPE,shell=True)
+        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_fw_get_filter'],stdout=subprocess.PIPE,shell=True)
         fwline=p.stdout.readline().decode('utf-8').rstrip()
         if fwline == "notup" or fwline == "" or fwline == None:
             self.status += '<tr><td colspan="2">\n'
@@ -307,20 +307,19 @@ class RelayPage(RelServPage):
         if "session" in form:
             action=form.getvalue('session')
             if action == "coldstart":
-                command='olm_cold_init force'
+                command=Params.getObslmDir()+'obslm.bash olm_cold_init force'
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 form['session'].value='None'
                 sleep(self.delay)
 
             if action == "shutdown":
-                page += '<div> Shutdown everything <a href=/page/realys.py?session=shutdown-confirm>Confirm</a></div>'
+                page += '<div> Shutdown everything <a href=/page/relays.py?session=shutdown-confirm>Confirm</a></div>'
                 page += '</div>'
                 return page
 
             if action == "shutdown-confirm":
-                page += '<div> Shutdown everything <a href=/page/realys.py?session=shutdown-confirm>Confirm</a></div>'
-                page += '</div>'
-                p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_session_shutdown'],stdout=subprocess.PIPE,shell=True)  #FIXME
+                p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_session_shutdown'],stdout=subprocess.PIPE,shell=True)
+                form['session'].value='None'
                 sleep(self.delay)
 
             if action == "timesync-eq8":
