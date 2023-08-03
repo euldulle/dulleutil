@@ -379,10 +379,10 @@ class RelayPage(RelServPage):
             try:
                 target=form.getvalue('shutdown')
                 if (target  == "pio"):
-                    command='sudo poweroff' 
+                    command='sudo poweroff'
 
                 if (target  == "indi"):
-                    command='obslm.bash olm_indicmd sudo poweroff' 
+                    command=Params.getObslmDir()+'obslm.bash olm_indicmd sudo poweroff'
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
@@ -401,7 +401,7 @@ class RelayPage(RelServPage):
                     command='sudo reboot'
 
                 if (target  == "indi"):
-                    command='obslm.bash olm_indicmd sudo reboot'
+                    command=Params.getObslmDir()+'obslm.bash olm_indicmd sudo reboot'
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(self.delay)
@@ -418,7 +418,7 @@ class RelayPage(RelServPage):
                 target=int(form.getvalue('fwset'))
 
                 if (target >0 and target <6):
-                    command="obslm.bash olm_indicmd olm_fw_set %d"%target
+                    command=Params.getObslmDir()+"obslm.bash olm_indicmd olm_fw_set %d"%target
 
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True) 
                 sleep(2)
@@ -439,7 +439,7 @@ class RelayPage(RelServPage):
                     inditarget=''
                 if (inditarget == None):
                     inditarget=''
-                command='obslm.bash olm_indicmd '+ indicom + ' ' + inditarget
+                command=Params.getObslmDir()+'obslm.bash olm_indicmd '+ indicom + ' ' + inditarget
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 if p.returncode !=0:
                     p=False
