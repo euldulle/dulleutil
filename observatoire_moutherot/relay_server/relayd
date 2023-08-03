@@ -34,7 +34,7 @@ if test -n "$piddaemon"; then
             fi
         fi
     fi
-    case "$1" in
+    case "$arg" in
         "status")
             echo daemon pid = $piddaemon
             if test -n "$pidserver"; then
@@ -53,16 +53,16 @@ if test -n "$piddaemon"; then
             fi;;
 
         "stop")
-            daemonlog " TERM'ing daemon $piddaemon"
+            daemonlog " TERMing daemon $piddaemon"
+            echo kill $piddaemon 
             kill $piddaemon 
-            if pidserver=$(pidof -x -o %PPID "${servername}"); then
-                daemonlog " killing server $pidserver"
-                kill $pidserver
-            fi ;;
+            echo killall $servername
+            killall $servername
+            ;;
     esac
     exit
 else
-    case "$1" in
+    case "$arg" in
         status)
             echo daemon is not running
             if test -n "$pidserver"; then
@@ -84,7 +84,7 @@ else
                 echo " No server ${servername} to kill"
             fi
             exit;;
-        "")
+        *)
     esac
     #
     # run the daemonpart

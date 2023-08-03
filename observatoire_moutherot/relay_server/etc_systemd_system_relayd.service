@@ -1,0 +1,10 @@
+[Unit]
+Description=Starts up relayd
+
+[Service]
+Type=oneshot
+ExecStart=/home/fmeyer/observatoire_moutherot/relay_server/relayd start
+ExecStop="/home/fmeyer/observatoire_moutherot/relay_server/relayd stop
+
+[Install]
+WantedBy=multi-user.target
