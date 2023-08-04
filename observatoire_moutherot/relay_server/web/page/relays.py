@@ -323,7 +323,7 @@ class RelayPage(RelServPage):
                 sleep(self.delay)
 
             if action == "timesync-eq8":
-                command=Params.getObslmDir()+'obslm.bash olm_indicmd olm_in_sync_eq8_time'
+                command=Params.getObslmDir()+'obslm.bash olm_indicmd olm_in_sync_eq8_time force'
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 form['session'].value='None'
                 sleep(self.delay)

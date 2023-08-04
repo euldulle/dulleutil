@@ -98,7 +98,8 @@ else
             sleep 10
         else
             rdaemonlog "(re)starting $servername"
-            ./$servername >>$OLM_SERVERLOG 2>&1
+            ./$servername >>$OLM_SERVERLOG 2>&1 &
+            olm_cold_init
             sleep 1
         fi
     done) &
