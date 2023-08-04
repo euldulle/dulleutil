@@ -335,7 +335,6 @@ olm_indicmd(){
 }
 
 olm_fw_get_filter(){
-
     ping -c 1 -W 1 "$OLM_INDIHOST" >/dev/null 2>&1
     if test "$?" = "0"; then
         olm_indicmd olm_fw_get
@@ -432,6 +431,10 @@ olm_in_log(){
 olm_in_sync_eq8_time(){
     # init time
     #
+    if test "$1" = "force"; then
+        /bin/rm -f "$OLM_EQ8TSYNC"
+    fi
+
     if ! test -f "$OLM_EQ8TSYNC"; then
         /usr/bin/indi_setprop "EQMod Mount.CONNECTION.CONNECT=On"
         setutc=$(date +"EQMod Mount.TIME_UTC.UTC=%Y-%m-%dT%H:%M:%S;OFFSET=0.00")

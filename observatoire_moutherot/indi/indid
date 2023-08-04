@@ -115,6 +115,7 @@ else
             sleep 1
             idaemonlog "  -> starting indi drivers "
             olm_in_start_all
+            olm_in_sync_eq8_time force
         fi
         sleep 10
     done) &
