@@ -304,9 +304,9 @@ olm_off_r8_full(){
     sleep $delay
     olm_setr8 CAM 0
     sleep $delay
-    olm_setr8 PRN 0
+    olm_setr8 PCN 0
     sleep $delay
-    olm_setr8 PRS 0
+    olm_setr8 PCS 0
     sleep $delay
     olm_setr8 R16 0
     rm -f $OLM_R8_SEM
