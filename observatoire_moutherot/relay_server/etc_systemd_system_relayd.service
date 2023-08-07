@@ -1,5 +1,7 @@
 [Unit]
 Description=Starts up relayd
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot

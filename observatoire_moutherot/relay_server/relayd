@@ -8,32 +8,13 @@ fi
 
 source ~fmeyer/observatoire_moutherot/obslm.bash
 
-servername="relay_server.py"
-
-piddaemon=$(pidof -x -o %PPID "relayd")
-pidserver=$(pidof -x -o %PPID "${servername}")
+piddaemon=$(pidof -x -o %PPID "${OLM_RELAYDNAME}")
+pidserver=$(pidof -x -o %PPID "${OLM_RSERVER_NAME}")
 
 if test -n "$piddaemon"; then
     #
     # relayd is already running
     #
-    #
-    # First check if initialisation has been done :
-    #   if not, do it once for each relay box:
-    if ! test -f "$OLM_R8_SEM"; then
-        rdaemonlog " initialising 8 port (KMTronic) relay box "
-        olm_init_r8_full
-        # wait for relay 16 to come uppp properly
-        sleep 10
-        touch $OLM_R8_SEM
-        if test -n "$OLM_R16_SEM"; then
-            if ! test -f "$OLM_R16_SEM"; then
-                rdaemonlog " initialising 16 port (chinese) relay box "
-                olm_init_r16_full
-                touch $OLM_R16_SEM
-            fi
-        fi
-    fi
     case "$arg" in
         "status")
             echo daemon pid = $piddaemon
@@ -43,21 +24,22 @@ if test -n "$piddaemon"; then
                 echo server is not running
             fi;;
 
-
         "restart")
-            if pidserver=$(pidof -x -o %PPID "${servername}"); then
+			# restart relay server
+            if pidserver=$(pidof -x -o %PPID "${OLM_RSERVER_NAME}"); then
                 rdaemonlog " killing server $pidserver"
                 kill $pidserver
             else
-                rdaemonlog " no server ${servername} running..."
+                rdaemonlog " no server ${OLM_RSERVER_NAME} running..."
             fi;;
 
         "stop")
             rdaemonlog " TERMing daemon $piddaemon"
             echo kill $piddaemon
             kill $piddaemon
-            echo killall $servername
-            killall $servername
+            rserverlog " TERMing server $piddaemon"
+            echo killall $OLM_RSERVER_NAME
+            killall $OLM_RSERVER_NAME
             ;;
     esac
     exit
@@ -77,11 +59,11 @@ else
 
         stop)
             echo " Daemon is not running, killing server"
-            if pidserver=$(pidof -x -o %PPID "${servername}"); then
+            if pidserver=$(pidof -x -o %PPID "${OLM_RSERVER_NAME}"); then
                 rdaemonlog " killing server $pidserver"
                 kill $pidserver
             else
-                echo " No server ${servername} to kill"
+                echo " No server ${OLM_RSERVER_NAME} to kill"
             fi
             exit;;
         *)
@@ -92,13 +74,15 @@ else
     cd $OLM_ROOT/relay_server/websys
     (
     while [ 1 ]; do
-        pid=$(pidof -x $servername)
+        pid=$(pidof -x $OLM_RSERVER_NAME)
         if [ $? == "0" ]; then
             # server is running wait 10 s and go on
             sleep 10
         else
-            rdaemonlog "(re)starting $servername"
-            ./$servername >>$OLM_SERVERLOG 2>&1 &
+            rserverlog "(re)starting $OLM_RSERVER_NAME"
+            ./$OLM_RSERVER_NAME >>$OLM_RSERVER_LOG 2>&1 &
+			# make sure network is up :
+			sudo nmcli con up olm
             olm_cold_init
             sleep 1
         fi

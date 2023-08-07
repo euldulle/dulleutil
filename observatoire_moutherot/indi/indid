@@ -12,14 +12,14 @@ source $HOME/observatoire_moutherot/obslm.bash
 
 serverdir="/usr/bin"
 servername="indiserver"
-serverargs="-f $OLM_INDIFIFO"
+serverargs="-f $OLM_IFIFO"
 
-if ! test -p "$OLM_INDIFIFO"; then
-    /bin/rm -f $OLM_INDIFIFO
-    /usr/bin/mkfifo $OLM_INDIFIFO
+if ! test -p "$OLM_IFIFO"; then
+    /bin/rm -f $OLM_IFIFO
+    /usr/bin/mkfifo $OLM_IFIFO
 fi
-if ! test -p "$OLM_INDIFIFO"; then
-    idaemonlog "Fatal error, fifo $OLM_INDIFIFO cannot be set..."
+if ! test -p "$OLM_IFIFO"; then
+    idaemonlog "Fatal error, fifo $OLM_IFIFO cannot be set..."
     exit
 fi
 
@@ -110,8 +110,8 @@ else
             olm_in_status_all
             sleep 10
         else
-            idaemonlog "(re)starting $servername, listening on $OLM_INDIFIFO"
-            ${serverdir}/${servername} ${serverargs} >>$OLM_INDISERVERLOG 2>&1 &
+            idaemonlog "(re)starting $servername, listening on $OLM_IFIFO"
+            ${serverdir}/${servername} ${serverargs} >>$OLM_ISERVERLOG 2>&1 &
             sleep 1
             idaemonlog "  -> starting indi drivers "
             olm_in_start_all

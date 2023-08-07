@@ -3,9 +3,15 @@ export OLM_HOME="/home/fmeyer/"
 export OLM_ROOT="/home/fmeyer/observatoire_moutherot"
 export OLM_LOGDIR="$OLM_ROOT/log"
 export OLM_LOG="$OLM_LOGDIR/olm.log"
-export OLM_RDAEMONLOG="$OLM_LOGDIR/relayd.log"
-export OLM_IDAEMONLOG="$OLM_LOGDIR/indid.log"
-export OLM_SERVERLOG="$OLM_LOGDIR/relayserver.log"
+#
+export OLM_RDAEMON_NAME="relayd"
+export OLM_RDAEMON_LOG="$OLM_LOGDIR/$OLM_RDAEMON_NAME.log"
+export OLM_RSERVER_NAME="relay_server.py"
+export OLM_RSERVER_LOG="$OLM_LOGDIR/${OLM_RSERVER_NAME}.log"
+#
+export OLM_IDAEMON_NAME="indid"
+export OLM_IDAEMON_LOG="$OLM_LOGDIR/$OLM_IDAEMON_NAME.log"
+#
 export OLM_R8_STATE="/tmp/olm_relay8"
 export OLM_R16_STATE="/tmp/olm_relay16"
 export OLM_R8_SEM="/tmp/olm_r8_sem"
@@ -16,24 +22,24 @@ export OLM_EQ8TNOTSYNC="/tmp/olm_eq8tsyncfailed"
 export OLM_SETTIMEOUT=5
 export OLM_R16TIMEOUT=60
 
-export OLM_INDIHOST="192.168.0.26"
-export OLM_RELAY8IP="192.168.0.23"
-export OLM_RELAY16IP="192.168.0.28"
-export OLM_RELAY8PORT="2380"
+export OLM_IHOST="192.168.0.26"
+export OLM_R8IP="192.168.0.23"
+export OLM_R16IP="192.168.0.28"
+export OLM_R8PORT=""
 
-export OLM_BASER8="http://fmeyer:4so4xRg9@${OLM_RELAY8IP}:${OLM_RELAY8PORT}/relays.cgi"
-export OLM_BASER16="http://${OLM_RELAY16IP}/30"
+export OLM_BASER8="http://fmeyer:4so4xRg9@${OLM_R8IP}${OLM_R8PORT}/relays.cgi"
+export OLM_BASER16="http://${OLM_R16IP}/30"
 
-export OLM_INDIROOT=$OLM_ROOT/indi
-export OLM_INDIRUN=$OLM_INDIROOT/run
-export OLM_INDILOGDIR=$OLM_INDIROOT/log
-export OLM_INDISERVERLOG=$OLM_INDILOGDIR/server.log
-export OLM_INDIFIFO=$OLM_INDIROOT/indififo
-export OLM_INDIWRAPLOG=$OLM_INDIROOT/wraplog
-export OLM_INDIWRAPPIDFILE=$OLM_INDIRUN/wrap.pid
-export OLM_INDISERVPIDFILE=$OLM_INDIRUN/indiserver.pid
-export OLM_INDILOCALDRIVERS=$OLM_INDIROOT/indilocaldrivers
-export OLM_PYRSCFILE=$OLM_INDIROOT/gpio_filter_assignments.py
+export OLM_IROOT=$OLM_ROOT/indi
+export OLM_IRUN=$OLM_IROOT/run
+export OLM_ILOGDIR=$OLM_IROOT/log
+export OLM_ISERVERLOG=$OLM_ILOGDIR/server.log
+export OLM_IFIFO=$OLM_IROOT/indififo
+export OLM_IWRAPLOG=$OLM_IROOT/wraplog
+export OLM_IWRAPPIDFILE=$OLM_IRUN/wrap.pid
+export OLM_ISERVPIDFILE=$OLM_IRUN/indiserver.pid
+export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
+export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
 
 export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
@@ -47,14 +53,24 @@ r8=("LIGHT Light"\
     "NC NA"\
     "NC NA" )
 
+rserverlog(){
+    # logging relayd
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_RSERVER_LOG 2>&1
+}
+
+iserverlog(){
+    # logging indid
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_ISERVER_LOG 2>&1
+}
+
 rdaemonlog(){
     # logging relayd
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_RDAEMONLOG 2>&1
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_RDAEMON_LOG 2>&1
 }
 
 idaemonlog(){
     # logging indid
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_IDAEMONLOG 2>&1
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_IDAEMON_LOG 2>&1
 }
 
 olm_log() {
@@ -124,6 +140,9 @@ olm_setr8(){
         *)
             return ;;
     esac
+	if ! test -f $OLM_R8_STATE; then
+		curl --connect-timeout "$OLM_SETTIMEOUT"  ${OLM_BASER8} -o $OLM_R8_STATE >/dev/null 2>&1
+	fi
     read -a relay <<<$(grep Status $OLM_R8_STATE)
     if ! test "${relay[$addr]}" = "$setstate"; then
         olm_log "     ${FUNCNAME[0]}: switching $switch to $setstate, ${OLM_BASER8}?relay=$addr"
@@ -197,6 +216,52 @@ olm_setr16(){
     curl --connect-timeout  $OLM_SETTIMEOUT -o /dev/null "${OLM_BASER16}/"$addr  >/dev/null 2>/dev/null
 }
 
+olm_wait_r8(){
+    #
+    # this waits forever. Might need FIXME
+    #
+    result="1"
+    let count=0
+
+    olm_log "    ${FUNCNAME[0]} : waiting for r8 to come up"
+    while ! test "$result" = "0"; do
+        ping -c 1 -W 5 $OLM_R8IP >/dev/null 2>&1
+        olm_log "ping -c 1 -W 5 $OLM_R8IP"
+		lognet=$(ip addr list dev eth0 |grep 'inet ')
+        olm_log "$lognet"
+        if test "$?" = "0"; then
+			olm_log "    ${FUNCNAME[0]} : ping r8 OK"
+			break
+        fi
+
+        let count=$count+1
+        if test "$count" -gt 10; then
+            olm_log "    ${FUNCNAME[0]} : ping r8 failed >10 Times, cycling interface"
+            sudo nmcli con up olm
+            let count=0
+        fi
+    done
+
+    result="1"
+    let count=0
+    while ! test "$result" = "0"; do
+        curl -o /dev/null "${OLM_BASER8}" >/dev/null 2>/dev/null
+		if test "$result" = "0"; then
+            olm_log "    ${FUNCNAME[0]} : r8 up and running"
+			break
+		fi
+        result="$?"
+        let count=$count+1
+        if test "$count" -gt 10; then
+            olm_log "    ${FUNCNAME[0]} : curl r8 failed >10 times,cycling interface"
+            sudo nmcli con up olm
+            let count=0
+        fi
+    done
+    olm_log "    ${FUNCNAME[0]} : r8 is up"
+	return 0
+}
+
 olm_wait_r16(){
     #
     # this waits forever. Might need FIXME
@@ -206,11 +271,19 @@ olm_wait_r16(){
 
     olm_log "    ${FUNCNAME[0]} : waiting for r16 to come up"
     while ! test "$result" = "0"; do
-        ping -c 1 -W 5 $OLM_RELAY16IP >/dev/null 2>&1
-        result="$?"
+        ping -c 1 -W 5 $OLM_R16IP >/dev/null 2>&1
+        olm_log "ping -c 1 -W 5 $OLM_R16IP"
+		olm_log "$(ip addr list dev eth0 |grep 'inet ')"
+        if test "$?" = "0"; then
+			olm_log "    ${FUNCNAME[0]} : ping r16 OK"
+			break
+        fi
+
         let count=$count+1
         if test "$count" -gt 10; then
             olm_log "    ${FUNCNAME[0]} : ping r16 failed >10 Times, powercycling it"
+            # first make sure PILIER is ON
+			olm_setr8 PILIER 1
             olm_setr8 R16 0
             sleep 2
             olm_setr8 R16 1
@@ -223,6 +296,10 @@ olm_wait_r16(){
     while ! test "$result" = "0"; do
         curl --connect-timeout $OLM_R16TIMEOUT --max-time $OLM_R16TIMEOUT -o /dev/null "${OLM_BASER16}" \
                 >/dev/null 2>/dev/null
+		if test "$result" = "0"; then
+            olm_log "    ${FUNCNAME[0]} : r16 up and running"
+			break
+		fi
         result="$?"
         let count=$count+1
         if test "$count" -gt 10; then
@@ -234,83 +311,77 @@ olm_wait_r16(){
         fi
     done
     olm_log "    ${FUNCNAME[0]} : r16 is up"
+	return 0
 }
 
 olm_cold_init(){
     #
     # do not initialize over a previous shutdown, unless arg "force" is given
     #
-    if ! test -f "$OLM_SHUTDOWN_SEM" || test "$1" = "force"; then
+    if ! [[ test -f "$OLM_SHUTDOWN_SEM" ]] || [[ test "$1" = "force"]]; then
         olm_log "  ${FUNCNAME[0]} : starting init sequence"
         olm_init_r8_full
-        # allow 60 s for relay16 to come up :
-        if test "$?" = "0"; then
-            olm_init_r16_full
-            olm_log "  ${FUNCNAME[0]} : init over"
+        if test "$?" = 0; then
+            olm_log "  ${FUNCNAME[0]} : R8 init OK"
         else
-            olm_log "${FUNCNAME[0]} : error connecting r16, not initializing it"
-            olm_log "  ${FUNCNAME[0]} : init failed"
+            olm_log "  ${FUNCNAME[0]} : R8 init failed"
         fi
+        olm_init_r16_full
+           if test "$?" = 0; then
+            olm_log "  ${FUNCNAME[0]} : R16 init OK"
+        else
+            olm_log "  ${FUNCNAME[0]} : R16 init failed"
+        fi
+        olm_init_r16_full
+     olm_log "  ${FUNCNAME[0]} : init over"
     else
         olm_log "  ${FUNCNAME[0]} : 'force' arg not passed: not overriding previous shutdown... "
     fi
     }
 
 olm_init_r8_full(){
+	olm_wait_r8
     olm_log "    ${FUNCNAME[0]} : starting init r8"
-    delay=1
-    olm_setr8 R16 1
-    sleep $delay
     olm_setr8 PILIER 1
-    sleep $delay
+    olm_setr8 R16 1
     olm_setr8 CAM 1
-    sleep $delay
     olm_setr8 PCN 1
-    sleep $delay
     olm_setr8 PCS 1
-    sleep $delay
     olm_log "  ${FUNCNAME[0]} : exiting"
+	return 0
     }
 
 olm_init_r16_full(){
     olm_log "    ${FUNCNAME[0]} : starting init r16"
     olm_wait_r16
-    delay=2
-    olm_setr16 USB 1 wait
-    sleep $delay
+	if test "$?" = "0"; then
+		olm_log "    ${FUNCNAME[0]} : relay 16 ok "
+	else
+		olm_log "    ${FUNCNAME[0]} : relay 16 FAILED aborting"
+		return 1
+	fi
+    olm_setr16 USB 1
     olm_setr16 EQ8 1
-    sleep $delay
     olm_setr16 DEW 1
-    sleep $delay
     olm_setr16 ATK 1
-    sleep $delay
     olm_setr16 FWST 1
-    sleep $delay
     olm_setr16 C14ST 1
-    sleep $delay
     olm_setr16 TSST 1
-    sleep $delay
     olm_setr16 OID 1
     olm_log "  ${FUNCNAME[0]} : exiting"
+	return 0
 }
 
 olm_off_r16_full(){
     olm_log "    ${FUNCNAME[0]} : shutting down r16"
     delay=1
     olm_setr16 OID 0
-    sleep $delay
     olm_setr16 USB 0
-    sleep $delay
     olm_setr16 EQ8 0
-    sleep $delay
     olm_setr16 DEW 0
-    sleep $delay
     olm_setr16 ATK 0
-    sleep $delay
     olm_setr16 FWST 0
-    sleep $delay
     olm_setr16 C14ST 0
-    sleep $delay
     olm_setr16 TSST 0
     olm_log "    ${FUNCNAME[0]} : r16 shutdown complete"
     rm -f $OLM_R16_SEM
@@ -318,17 +389,11 @@ olm_off_r16_full(){
 
 olm_off_r8_full(){
     olm_log "    ${FUNCNAME[0]} : starting r16 shutdown"
-    delay=1
     olm_setr8 LIGHT 0
-    sleep $delay
     olm_setr8 PILIER 0
-    sleep $delay
     olm_setr8 CAM 0
-    sleep $delay
     olm_setr8 PCN 0
-    sleep $delay
     olm_setr8 PCS 0
-    sleep $delay
     olm_setr8 R16 0
     rm -f $OLM_R8_SEM
 
@@ -336,7 +401,7 @@ olm_off_r8_full(){
 }
 
 olm_shutdown_indihost(){
-    olm_log "    ${FUNCNAME[0]} : shutting down indi host $OLM_INDIHOST"
+    olm_log "    ${FUNCNAME[0]} : shutting down indi host $OLM_IHOST"
     olm_indicmd "sudo shutdown"
 }
 
@@ -351,12 +416,12 @@ olm_session_shutdown(){
 }
 
 olm_indicmd(){
-    olm_log ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 $OLM_INDIHOST $*
-    ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 fmeyer@$OLM_INDIHOST $*
+    olm_log ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 $OLM_IHOST $*
+    ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 fmeyer@$OLM_IHOST $*
 }
 
 olm_fw_get_filter(){
-    ping -c 1 -W 1 "$OLM_INDIHOST" >/dev/null 2>&1
+    ping -c 1 -W 1 "$OLM_IHOST" >/dev/null 2>&1
     if test "$?" = "0"; then
         olm_indicmd olm_fw_get
     else
@@ -365,7 +430,7 @@ olm_fw_get_filter(){
     }
 
 olm_fw_set_filter(){
-    ping -c 1 -W 1 "$OLM_INDIHOST" >/dev/null 2>&1
+    ping -c 1 -W 1 "$OLM_IHOST" >/dev/null 2>&1
     if test "$?" = "0"; then
         if test -n "$1"; then
             olm_indicmd fw_set "$1"
@@ -380,7 +445,7 @@ olm_get_indi_status(){
 #
 # getting indi status running on indi host
 #
-    ping -c 1 -W 1 $OLM_INDIHOST >/dev/null 2>&1
+    ping -c 1 -W 1 $OLM_IHOST >/dev/null 2>&1
     if test "$?" = "0"; then
         echo OK
         olm_indicmd olm_in_status_all
@@ -400,7 +465,7 @@ olm_get_relay_state(){
 
     if test "$arg" = "16"; then
         failed=""
-        ping -c 1 -W 1 $OLM_RELAY16IP >/dev/null 2>&1
+        ping -c 1 -W 1 $OLM_R16IP >/dev/null 2>&1
         if test "$?" = "0"; then
             echo OK
             for i in $(seq 0 3); do
@@ -429,7 +494,7 @@ olm_get_relay_state(){
     fi
 
     if test "$arg" = "8"; then
-        ping -c 1 -W 1 ${OLM_RELAY8IP} >/dev/null 2>&1
+        ping -c 1 -W 1 ${OLM_R8IP} >/dev/null 2>&1
         if test "$?" = "0"; then
             echo OK
             # /usr/bin/wget -O $OLM_R8_STATE ${OLM_BASER8} --timeout=2 --tries=2 >/dev/null 2>/dev/null
@@ -446,7 +511,7 @@ olm_get_relay_state(){
     }
 
 olm_in_log(){
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_INDIWRAPLOG 2>&1
+    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_IWRAPLOG 2>&1
     }
 
 olm_in_sync_eq8_time(){
@@ -486,23 +551,23 @@ olm_in_dname(){
     }
 
 olm_in_killserv(){
-    echo killing server $(cat $OLM_INDISERVPIDFILE) |tee -a $OLM_INDISERVERLOG
-    kill $(cat "$OLM_INDISERVPIDFILE")
-    rm $OLM_INDISERVPIDFILE
+    echo killing server $(cat $OLM_ISERVPIDFILE) |tee -a $OLM_ISERVERLOG
+    kill $(cat "$OLM_ISERVPIDFILE")
+    rm $OLM_ISERVPIDFILE
     }
 
 olm_in_killdrivers(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_stop $driver
-    done <$OLM_INDILOCALDRIVERS
+    done <$OLM_ILOCALDRIVERS
     }
 
 olm_in_killall(){
-    echo killing wrapper $(cat $OLM_INDIWRAPPIDFILE) |tee -a $OLM_INDISERVERLOG
-    kill -INT $(cat "$OLM_INDIWRAPPIDFILE")
-    rm $OLM_INDIWRAPPIDFILE
-    rm $OLM_INDISERVPIDFILE
+    echo killing wrapper $(cat $OLM_IWRAPPIDFILE) |tee -a $OLM_ISERVERLOG
+    kill -INT $(cat "$OLM_IWRAPPIDFILE")
+    rm $OLM_IWRAPPIDFILE
+    rm $OLM_ISERVPIDFILE
     olm_in_killserv
     olm_in_killdrivers
     }
@@ -511,17 +576,17 @@ olm_in_start(){
     olm_in_log ${FUNCNAME[0]}
     olm_in_dname $1
     if test "$driver" = "fw.py"; then
-        nohup $OLM_INDIROOT/$driver daemon >> $OLM_INDISERVERLOG 2>&1 &
+        nohup $OLM_IROOT/$driver daemon >> $OLM_ISERVERLOG 2>&1 &
     else
         if test "$driver" = "indiserver"; then
-            nohup /usr/bin/indiserver -f $OLM_INDIFIFO >> $OLM_INDISERVERLOG 2>&1 &
+            nohup /usr/bin/indiserver -f $OLM_IFIFO >> $OLM_ISERVERLOG 2>&1 &
         else
             pid=$(pidof $driver)
             if ! test "$?" = 0; then
-                echo start $driver |tee -a $OLM_INDIFIFO
+                echo start $driver |tee -a $OLM_IFIFO
                 driverpid=$(pidof $driver)
-                echo $driver running : $driverpid |tee -a $OLM_INDISERVERLOG
-                echo -n "$driverpid " >> $OLM_INDIRUN/$driver.pid
+                echo $driver running : $driverpid |tee -a $OLM_ISERVERLOG
+                echo -n "$driverpid " >> $OLM_IRUN/$driver.pid
             else
                 echo existing driver $driver pid $pid
             fi
@@ -537,14 +602,14 @@ olm_in_pidof(){
     else
         pid=$(pidof -x $driver -o %PPID)
         if [ "$?" = "0" ]; then
-            echo  $pid >$OLM_INDIRUN/$driver.pid
+            echo  $pid >$OLM_IRUN/$driver.pid
             if [[ "$2" == "" ]]; then
                 echo $1 $pid
             fi
         else
             echo $1 not_running
-            if test -f $OLM_INDIRUN/$driver.pid; then
-                rm -f $OLM_INDIRUN/$driver.pid
+            if test -f $OLM_IRUN/$driver.pid; then
+                rm -f $OLM_IRUN/$driver.pid
             fi
             return 255
         fi
@@ -566,7 +631,7 @@ olm_in_status_all(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         (echo -n "$driver " && olm_in_status $driver)
-    done <$OLM_INDILOCALDRIVERS
+    done <$OLM_ILOCALDRIVERS
     }
 
 olm_in_start_all(){
@@ -575,7 +640,7 @@ olm_in_start_all(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_start $driver
-    done <$OLM_INDILOCALDRIVERS
+    done <$OLM_ILOCALDRIVERS
     olm_in_log /$FUNCNAME{0}
     }
 
@@ -585,7 +650,7 @@ olm_in_stop_all(){
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_stop $driver
-    done <$OLM_INDILOCALDRIVERS
+    done <$OLM_ILOCALDRIVERS
     olm_in_log Stopping indiserver
     olm_in_killserv
     olm_in_log Done
@@ -606,7 +671,7 @@ olm_in_stop(){
             olm_in_stop_all
         else
             olm_in_log stopping $driver
-            echo stop $driver |tee $OLM_INDIFIFO
+            echo stop $driver |tee $OLM_IFIFO
         fi
     fi
     olm_in_log /${FUNCNAME[0]}
@@ -653,7 +718,7 @@ olm_fw_get(){
 }
 
 olm_fw_start(){
-    nohup $OLM_INDIROOT/fw.py daemon >/dev/null 2>&1 &
+    nohup $OLM_IROOT/fw.py daemon >/dev/null 2>&1 &
 }
 
 olm_fw_stop(){
@@ -672,5 +737,7 @@ olm_fw_pwrstepper(){
 }
 
 if test -n "$1"; then
-    $*
+	command="$1"
+	shift
+    $command $*
 fi
