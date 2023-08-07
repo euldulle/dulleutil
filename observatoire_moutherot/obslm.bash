@@ -38,6 +38,15 @@ export OLM_PYRSCFILE=$OLM_INDIROOT/gpio_filter_assignments.py
 export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 
+r8=("LIGHT Light"\
+    "PIL Pilier"\
+    "CAM Camera"\
+    "PCN Prises-N"\
+    "PCS Prises-S"\
+    "R16 Relais-16"\
+    "NC NA"\
+    "NC NA" )
+
 rdaemonlog(){
     # logging relayd
     date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_RDAEMONLOG 2>&1
@@ -56,13 +65,10 @@ setr8_usage(){
 cat <<ENDUSAGE
     usage ${FUNCNAME[0]} channel
     channel   description :
-    LIGHT     lumiere
-    PILIER    pilier
-    CAM       camera
-    PCN       prises Nord
-    PCS       prises Sud (dont toit)
-    R16       relais 16 ports
 ENDUSAGE
+    for i in 0 1 2 3 4 5 6 7; do
+        echo $i ${r8[i]}
+    done
 }
 
 setr16_usage(){
@@ -200,12 +206,27 @@ olm_wait_r16(){
 
     olm_log "    ${FUNCNAME[0]} : waiting for r16 to come up"
     while ! test "$result" = "0"; do
+        ping -c 1 -W 5 $OLM_RELAY16IP >/dev/null 2>&1
+        result="$?"
+        let count=$count+1
+        if test "$count" -gt 10; then
+            olm_log "    ${FUNCNAME[0]} : ping r16 failed >10 Times, powercycling it"
+            olm_setr8 R16 0
+            sleep 2
+            olm_setr8 R16 1
+            let count=0
+        fi
+    done
+
+    result="1"
+    let count=0
+    while ! test "$result" = "0"; do
         curl --connect-timeout $OLM_R16TIMEOUT --max-time $OLM_R16TIMEOUT -o /dev/null "${OLM_BASER16}" \
                 >/dev/null 2>/dev/null
         result="$?"
         let count=$count+1
-        if test "$count" -gt 5; then
-            olm_log "    ${FUNCNAME[0]} : r16 not responding, powercycling it"
+        if test "$count" -gt 10; then
+            olm_log "    ${FUNCNAME[0]} : curl r16 failed >10 times, powercycling it"
             olm_setr8 R16 0
             sleep 1
             olm_setr8 R16 1
