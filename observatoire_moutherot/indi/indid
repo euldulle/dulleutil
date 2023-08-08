@@ -2,6 +2,7 @@
 #
 #
 daemonname=$(basename -- $0)
+sudo chown 666 /dev/gpiomem
 
 arg="$1"
 if ! test -z "$arg"; then
@@ -66,10 +67,10 @@ if test -n "$piddaemon"; then
             fi;;
 
         "stop")
-            idaemonlog " TERMing daemon $piddaemon"
-            echo kill $piddaemon
+            idaemonlog " TERMing (kill) daemon $piddaemon $daemonname"
             kill $piddaemon
-            echo killall $servername
+            idaemonlog " TERMing  kill pid $piddaemon, killall server $servername,"
+            kill $pidserver
             killall $servername
             ;;
     esac
