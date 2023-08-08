@@ -226,14 +226,14 @@ olm_wait_r8(){
     olm_log "    ${FUNCNAME[0]} : waiting for r8 to come up"
     while ! test "$result" = "0"; do
         ping -c 1 -W 5 $OLM_R8IP >/dev/null 2>&1
-        olm_log "ping -c 1 -W 5 $OLM_R8IP"
-		lognet=$(ip addr list dev eth0 |grep 'inet ')
-        olm_log "$lognet"
         if test "$?" = "0"; then
 			olm_log "    ${FUNCNAME[0]} : ping r8 OK"
 			break
         fi
 
+        olm_log "ping -c 1 -W 5 $OLM_R8IP"
+		lognet=$(ip addr list dev eth0 |grep 'inet ')
+        olm_log "$lognet"
         let count=$count+1
         if test "$count" -gt 10; then
             olm_log "    ${FUNCNAME[0]} : ping r8 failed >10 Times, cycling interface"
@@ -272,13 +272,14 @@ olm_wait_r16(){
     olm_log "    ${FUNCNAME[0]} : waiting for r16 to come up"
     while ! test "$result" = "0"; do
         ping -c 1 -W 5 $OLM_R16IP >/dev/null 2>&1
-        olm_log "ping -c 1 -W 5 $OLM_R16IP"
-		olm_log "$(ip addr list dev eth0 |grep 'inet ')"
-        if test "$?" = "0"; then
+		result="$?"
+        if test "$result" = "0"; then
 			olm_log "    ${FUNCNAME[0]} : ping r16 OK"
 			break
         fi
 
+        olm_log "ping -c 1 -W 5 $OLM_R16IP"
+		olm_log "$(ip addr list dev eth0 |grep 'inet ')"
         let count=$count+1
         if test "$count" -gt 10; then
             olm_log "    ${FUNCNAME[0]} : ping r16 failed >10 Times, powercycling it"
@@ -296,11 +297,11 @@ olm_wait_r16(){
     while ! test "$result" = "0"; do
         curl --connect-timeout $OLM_R16TIMEOUT --max-time $OLM_R16TIMEOUT -o /dev/null "${OLM_BASER16}" \
                 >/dev/null 2>/dev/null
+		result="$?"
 		if test "$result" = "0"; then
             olm_log "    ${FUNCNAME[0]} : r16 up and running"
 			break
 		fi
-        result="$?"
         let count=$count+1
         if test "$count" -gt 10; then
             olm_log "    ${FUNCNAME[0]} : curl r16 failed >10 times, powercycling it"
