@@ -13,7 +13,7 @@ from time import sleep
 from re import sub
 
 class RelayPage(RelServPage):
-    kmtronic_bare='http://fmeyer:4so4xRg9@relais8:2380/'
+    kmtronic_bare='http://fmeyer:4so4xRg9@192.168.0.23/'
     kmtronic_status=kmtronic_bare+'relays.cgi'
     kmtronic_switch=kmtronic_bare+'relays.cgi?relay='
     kmtronic_config=[]
