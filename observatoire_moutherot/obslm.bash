@@ -74,7 +74,8 @@ idaemonlog(){
 }
 
 olm_log() {
-    echo $(date +"%H:%M:%S ") $* >>$OLM_LOG
+	date +"%Y%m%d_%H%M%S_%Z : $*" >>$OLM_LOG 2>&1
+    #echo $(date +"%H:%M:%S ") $* >>$OLM_LOG
     }
 
 setr8_usage(){
