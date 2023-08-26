@@ -2,7 +2,6 @@
 #
 #
 daemonname=$(basename -- $0)
-sudo chown 666 /dev/gpiomem
 
 arg="$1"
 if ! test -z "$arg"; then
@@ -10,6 +9,8 @@ if ! test -z "$arg"; then
 fi
 
 source $HOME/observatoire_moutherot/obslm.bash
+idaemonlog "Setting gpiomem "
+sudo chmod 666 /dev/gpiomem
 
 serverdir="/usr/bin"
 servername="indiserver"
@@ -112,7 +113,7 @@ else
             sleep 10
         else
             idaemonlog "(re)starting $servername, listening on $OLM_IFIFO"
-            ${serverdir}/${servername} ${serverargs} >>$OLM_ISERVERLOG 2>&1 &
+            ${serverdir}/${servername} ${serverargs} >>$OLM_ISERVER_LOG 2>&1 &
             sleep 1
             idaemonlog "  -> starting indi drivers "
             olm_in_start_all

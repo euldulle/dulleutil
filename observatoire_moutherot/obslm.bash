@@ -22,9 +22,10 @@ export OLM_EQ8TNOTSYNC="/tmp/olm_eq8tsyncfailed"
 export OLM_SETTIMEOUT=5
 export OLM_R16TIMEOUT=60
 
-export OLM_IHOST="192.168.0.26"
-export OLM_R8IP="192.168.0.23"
-export OLM_R16IP="192.168.0.28"
+export OLM_NETWORK="192.168.1"
+export OLM_IHOST="$OLM_NETWORK.26"
+export OLM_R8IP="$OLM_NETWORK.23"
+export OLM_R16IP="$OLM_NETWORK.28"
 export OLM_R8PORT=""
 
 export OLM_BASER8="http://fmeyer:4so4xRg9@${OLM_R8IP}${OLM_R8PORT}/relays.cgi"
@@ -713,10 +714,10 @@ olm_fw_stop(){
 olm_fw_pwrstepper(){
     case "$1" in
         "ON")
-            wget -O /dev/null http://192.168.0.28/30/01
+            wget -O /dev/null http://$OLM_R16IP/30/01
             ;;
         "OFF")
-            wget -O /dev/null http://192.168.0.28/30/00
+            wget -O /dev/null http://$OLM_R16IP/30/00
             ;;
     esac
 }
