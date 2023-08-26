@@ -2,3 +2,5 @@ log/*
 __pycache__/
 indi/run/*
 indi/log/*
+indi/indififo
+indi/wraplog
