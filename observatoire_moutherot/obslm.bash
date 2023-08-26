@@ -548,7 +548,7 @@ olm_in_dname(){
     }
 
 olm_in_killserv(){
-    echo killing server $(cat $OLM_ISERVPIDFILE) |tee -a $OLM_ISERVERLOG
+    echo killing server $(cat $OLM_ISERVPIDFILE) |tee -a $OLM_ISERVER_LOG
     kill $(cat "$OLM_ISERVPIDFILE")
     rm $OLM_ISERVPIDFILE
     }
@@ -564,16 +564,17 @@ olm_in_start(){
     olm_in_dname $1
     iserverlog "${FUNCNAME[0]} $driver ($1)"
     if test "$driver" = "fw.py"; then
-        nohup $OLM_IROOT/$driver daemon >> $OLM_ISERVERLOG 2>&1 &
+        nohup $OLM_IROOT/$driver daemon >> $OLM_ISERVER_LOG 2>&1 &
     else
         if test "$driver" = "indiserver"; then
-            nohup /usr/bin/indiserver -f $OLM_IFIFO >> $OLM_ISERVERLOG 2>&1 &
+            iserverlog "${FUNCNAME[0]} server, $driver ($1)"
+            nohup /usr/bin/indiserver -f $OLM_IFIFO >> $OLM_ISERVER_LOG 2>&1 &
         else
             pid=$(pidof $driver)
             if ! test "$?" = 0; then
                 echo start $driver |tee -a $OLM_IFIFO
                 driverpid=$(pidof $driver)
-                echo $driver running : $driverpid |tee -a $OLM_ISERVERLOG
+                echo $driver running : $driverpid |tee -a $OLM_ISERVER_LOG
                 echo -n "$driverpid " >> $OLM_IRUN/$driver.pid
             else
                 echo existing driver $driver pid $pid
