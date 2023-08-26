@@ -15,9 +15,9 @@ class Params:
     res_dir = root_dir
     #http_port = 8028
     http_port = 80
-    box1_address = "192.168.0.23"
+    box1_address = "192.168.1.23"
     box1_port = 80
-    box2_address = "192.168.0.28"
+    box2_address = "192.168.1.28"
     box2_port = 80
     box2_urlbase = "/30/"
     hostname = None
