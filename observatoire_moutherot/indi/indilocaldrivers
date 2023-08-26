@@ -1,12 +1,5 @@
 # drivers/scripts de controle a demarrer
-# lu par :
-#   ~/bin/wrapindiserver.bash
-#   les fonctions bash de ~/indi_env.sh :
-#       in_status, in_start, in_stop, ...
-#       
-#       la fonction in_dname de indi_env.sh
-#       met en correspondance le mot-clé ci-dessous
-#       avec l'exécutable qui doit être lancé
+# lu par les fonctions olm_in_start et al in obslm.bash
 #
 atik
 qhy

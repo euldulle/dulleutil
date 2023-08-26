@@ -33,11 +33,9 @@ export OLM_BASER16="http://${OLM_R16IP}/30"
 
 export OLM_IROOT=$OLM_ROOT/indi
 export OLM_IRUN=$OLM_IROOT/run
-export OLM_ILOGDIR=$OLM_IROOT/log
-export OLM_ISERVERLOG=$OLM_ILOGDIR/server.log
+export OLM_ILOGDIR=$OLM_ROOT/log
+export OLM_ISERVER_LOG=$OLM_ILOGDIR/server.log
 export OLM_IFIFO=$OLM_IROOT/indififo
-export OLM_IWRAPLOG=$OLM_IROOT/wraplog
-export OLM_IWRAPPIDFILE=$OLM_IRUN/wrap.pid
 export OLM_ISERVPIDFILE=$OLM_IRUN/indiserver.pid
 export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
 export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
@@ -62,6 +60,7 @@ rserverlog(){
 iserverlog(){
     # logging indid
     date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_ISERVER_LOG 2>&1
+    #printf "%(%Y%m%d_%H%M%S_%Z)T%s : $1\n" >>$OLM_ISERVER_LOG 2>&1
 }
 
 rdaemonlog(){
@@ -75,8 +74,8 @@ idaemonlog(){
 }
 
 olm_log() {
-	date +"%Y%m%d_%H%M%S_%Z : $*" >>$OLM_LOG 2>&1
-    #echo $(date +"%H:%M:%S ") $* >>$OLM_LOG
+    date +"%Y%m%d_%H%M%S_%Z : $*" >>$OLM_LOG 2>&1
+    #echo $(date +"%Y%m%d_%H%M%S_%Z ") $* >>$OLM_LOG
     }
 
 setr8_usage(){
@@ -513,10 +512,6 @@ olm_get_relay_state(){
     fi
     }
 
-olm_in_log(){
-    date +"%Y%m%d_%H%M%S_%Z : $1" >>$OLM_IWRAPLOG 2>&1
-    }
-
 olm_in_sync_eq8_time(){
     # init time
     #
@@ -528,7 +523,7 @@ olm_in_sync_eq8_time(){
         /usr/bin/indi_setprop "EQMod Mount.CONNECTION.CONNECT=On"
         setutc=$(date +"EQMod Mount.TIME_UTC.UTC=%Y-%m-%dT%H:%M:%S;OFFSET=0.00")
         if /usr/bin/indi_setprop "$setutc"; then
-            olm_in_log "set EQ8 UTC : $setutc"
+            iserverlog "set EQ8 UTC : $setutc"
             rm -f $OLM_EQ8TNOTSYNC
             touch $OLM_EQ8TSYNC
         else
@@ -566,18 +561,9 @@ olm_in_killdrivers(){
     done <$OLM_ILOCALDRIVERS
     }
 
-olm_in_killall(){
-    echo killing wrapper $(cat $OLM_IWRAPPIDFILE) |tee -a $OLM_ISERVERLOG
-    kill -INT $(cat "$OLM_IWRAPPIDFILE")
-    rm $OLM_IWRAPPIDFILE
-    rm $OLM_ISERVPIDFILE
-    olm_in_killserv
-    olm_in_killdrivers
-    }
-
 olm_in_start(){
-    olm_in_log ${FUNCNAME[0]}
     olm_in_dname $1
+    iserverlog "${FUNCNAME[0]} $driver ($1)"
     if test "$driver" = "fw.py"; then
         nohup $OLM_IROOT/$driver daemon >> $OLM_ISERVERLOG 2>&1 &
     else
@@ -595,7 +581,6 @@ olm_in_start(){
             fi
         fi
     fi
-    olm_in_log /${FUNCNAME[0]}
     }
 
 olm_in_pidof(){
@@ -606,10 +591,12 @@ olm_in_pidof(){
         pid=$(pidof -x $driver -o %PPID)
         if [ "$?" = "0" ]; then
             echo  $pid >$OLM_IRUN/$driver.pid
+            iserverlog "  $driver ($1) pid $pid"
             if [[ "$2" == "" ]]; then
                 echo $1 $pid
             fi
         else
+            iserverlog "  $driver not_running ($1)"
             echo $1 not_running
             if test -f $OLM_IRUN/$driver.pid; then
                 rm -f $OLM_IRUN/$driver.pid
@@ -629,40 +616,41 @@ olm_in_status(){
     }
 
 olm_in_status_all(){
+    iserverlog "${FUNCNAME[0]}"
     echo -n "server "
     olm_in_status indiserver
     while read driver; do
         [[ $driver =~ ^# ]] ||
         (echo -n "$driver " && olm_in_status $driver)
     done <$OLM_ILOCALDRIVERS
+    iserverlog "/${FUNCNAME[0]}"
     }
 
 olm_in_start_all(){
-    olm_in_log ${FUNCNAME[0]}
-    olm_in_log Starting drivers
+    iserverlog ${FUNCNAME[0]}
+    iserverlog Starting drivers
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_start $driver
     done <$OLM_ILOCALDRIVERS
-    olm_in_log /$FUNCNAME{0}
+    iserverlog /$FUNCNAME{0}
     }
 
 olm_in_stop_all(){
-    olm_in_log ${FUNCNAME[0]}
-    olm_in_log Stopping all drivers
+    iserverlog ${FUNCNAME[0]}
+    iserverlog Stopping all drivers
     while read driver; do
         [[ $driver =~ ^# ]] ||
         olm_in_stop $driver
     done <$OLM_ILOCALDRIVERS
-    olm_in_log Stopping indiserver
+    iserverlog Stopping indiserver
     olm_in_killserv
-    olm_in_log Done
-    olm_in_log /${FUNCNAME[0]}
+    iserverlog Done /${FUNCNAME[0]}
     }
 
 olm_in_stop(){
-    olm_in_log ${FUNCNAME[0]}
     olm_in_dname $1
+    iserverlog "${FUNCNAME[0]} $driver ($1)"
     if [[ $driver == "fw.py" ]]; then
         #
         # non-INDI processes here :
@@ -673,35 +661,29 @@ olm_in_stop(){
         if [[ $driver == "indiserver" ]]; then
             olm_in_stop_all
         else
-            olm_in_log stopping $driver
+            iserverlog stopping $driver
             echo stop $driver |tee $OLM_IFIFO
         fi
     fi
-    olm_in_log /${FUNCNAME[0]}
+    iserverlog /${FUNCNAME[0]}
     }
 
 olm_in_cycle(){
-    olm_in_log ${FUNCNAME[0]}
-    olm_in_log START CYCLE
     olm_in_dname $1
+    iserverlog "${FUNCNAME[0]} $driver ($1)"
     if [[ $1 == "indiserver" ]]; then
-        olm_in_log Cycling indiserver
+        iserverlog Cycling indiserver
         olm_in_stop_all
-        olm_in_log Starting indiserver
         olm_in_start indiserver
         sleep 1
         olm_in_start_all
     else
-        olm_in_log olm_in_stop $driver
         olm_in_stop $driver
-        olm_in_log sleeping 1s
+        iserverlog "sleeping 1s"
         sleep 1
-        olm_in_log olm_in_start $driver
         olm_in_start $driver
     fi
-    olm_in_log END CYCLE
-    olm_in_log /${FUNCNAME[0]}
-    olm_in_log ==========================
+    iserverlog END CYCLE /${FUNCNAME[0]}
     }
 
 olm_fw_set(){

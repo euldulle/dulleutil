@@ -1,2 +1,2 @@
 # relay_server
-relay_server.sh is the wrapper to be launched
+relayd is the daemon, launched at boot by systmed
