@@ -13,7 +13,7 @@ from time import sleep
 from re import sub
 
 class RelayPage(RelServPage):
-    kmtronic_bare='http://fmeyer:4so4xRg9@192.168.0.23/'
+    kmtronic_bare='http://fmeyer:4so4xRg9@relay8/'
     kmtronic_status=kmtronic_bare+'relays.cgi'
     kmtronic_switch=kmtronic_bare+'relays.cgi?relay='
     kmtronic_config=[]
@@ -73,11 +73,11 @@ class RelayPage(RelServPage):
         #
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Indi server/driver</font></th></tr></thead>\n'
-        #self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (192.168.0.26 off ?)</font></td>\n'
+        #self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (oid off ?)</font></td>\n'
         if True:
             p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_get_indi_status'],stdout=subprocess.PIPE,shell=True)
             if p.stdout.readline().decode('utf-8').rstrip() == "notup":
-                self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (192.168.0.26 off ?)</font></td>\n'
+                self.status += '<tr><td colspan="4"> <font color="#FF0000">cant get indi status (oid off ?)</font></td>\n'
             else:
                 for line in p.stdout:
                     sline=line.decode('utf-8')
@@ -137,7 +137,7 @@ class RelayPage(RelServPage):
         fwline=p.stdout.readline().decode('utf-8').rstrip()
         if fwline == "notup" or fwline == "" or fwline == None:
             self.status += '<tr><td colspan="2">\n'
-            self.status += '<font color="#FF0000">cant get fw status (192.168.0.26 off ?)</font></td>\n'
+            self.status += '<font color="#FF0000">cant get fw status (oid off ?)</font></td>\n'
         else:
             fwstatus=fwline.split()
             self.status += '<tr><td colspan="2">\n'
@@ -364,9 +364,9 @@ class RelayPage(RelServPage):
                         #
                         # Sending stop
                         #
-                        urllib.request.urlretrieve("http://relais16/30/29",filename="/dev/null")
+                        urllib.request.urlretrieve("http://relay16/30/29",filename="/dev/null")
                         sleep(self.delay)
-                        urllib.request.urlretrieve("http://relais16/30/28",filename="/dev/null")
+                        urllib.request.urlretrieve("http://relay16/30/28",filename="/dev/null")
 
             except:
                 page = "error urllib"
