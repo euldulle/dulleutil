@@ -19,7 +19,7 @@ statusword=""
 def stepper_driver_on(onoff):
     pass
     # FIXME
-    # http://localhost:8028/page/relays.py?switch=http://192.168.0.28/30/01
+    # http://localhost:8028/page/relays.py?switch=http://relay16/30/01
 
 def update_statefile(status):
     with open(olm_fw_statefile,"w") as f:
@@ -33,10 +33,10 @@ def reset_index():
 
 def pwr_stepper(onoff):
     if onoff=="ON":
-        urllib.request.urlretrieve("http://192.168.0.28/30/01")
+        urllib.request.urlretrieve("http://relay16/30/01")
 
     if onoff=="OFF":
-        urllib.request.urlretrieve("http://192.168.0.28/30/00")
+        urllib.request.urlretrieve("http://relay16/30/00")
 
 def clean_exit(signum, frame):
     global filter_index
