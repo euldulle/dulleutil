@@ -1,0 +1,67 @@
+Description:
+
+1. Le produit a un large éventail d'utilisations
+2. Facile à utiliser
+3. De nombreux scénarios applicables
+4. En utilisant le module de contrôleur et le relais à 16 canaux, vous pouvez contrôler à distance jusqu'à 16 appareils
+5. En utilisant la carte contrôleur Ethernet, vous pouvez profiter de la télécommande d'autres appareils
+
+
+Mode d'emploi:
+1: IP par défaut: 192.168.1.4 Port: 30000
+Ouvrez le navigateur, entrez dans la barre d'adresse: http:// 192.168.1.4/30000 pour entrer dans l'interface de contrôle
+
+2: commande de relais HTTP:
+Relais 1-8 commandes de route:
+Http: // ip/port/00: relais-01 OFF
+Http: // ip/port/01: relais-01 ON
+Http: // ip/port/02: relais-02 OFF
+Http: // ip/port/03: relais-02 ON
+Http: // ip/port/04: relais-03 OFF
+Http: // ip/port/05: relais-03 ON
+Http: // ip/port/06: relais-04 OFF
+Http: // ip/port/07: relais-04 ON
+Http: // ip/port/08: relais-05 OFF
+Http: // ip/port/09: relais-05 ON
+Http: // ip/port/10: relais-06 OFF
+Http: // ip/port/11: relais-06 ON
+Http: // ip/port/12: relais-07 OFF
+Http: // ip/port/13: relais-07 ON
+Http: // ip/port/14: relais-08 OFF
+Http: // ip/port/15: relais-08 ON
+
+Relais 9-10 commandes de route:
+Http: // ip/port/16: relais-09 OFF
+Http: // ip/port/17: relais-09 ON
+Http: // ip/port/18: relais-10 OFF
+Http: // ip/port/19: relais-10 ON
+Http: // ip/port/20: relais-11 OFF
+Http: // ip/port/21: relais-11 ON
+Http: // ip/port/22: relais-12 OFF
+Http: // ip/port/23: relais-12 ON
+Http: // ip/port/24: relais-13 OFF
+Http: // ip/port/25: relais-13 ON
+Http: // ip/port/26: relais-14 OFF
+Http: // ip/port/27: relais-14 ON
+Http: // ip/port/28: relais-15 OFF
+Http: // ip/port/29: relais-15 ON
+Http: // ip/port/30: relais-16 OFF
+Http: // ip/port/31: relais-16 ON
+
+3: commande d'état du relais de requête:
+Http: // ip/port/99: commentaires sur l'état actuel des e/s et commentaires 16 ACSII correspondant aux e/s relatives; Le bit le plus élevé est le premier canal, et le bit le plus bas est 16 canaux.
+Par exemple: renvoyer 1111000011110000, l'état du commutateur est Relay1 ~ 4 est activé, Relay5 ~ 8 est désactivé, Relay9 ~ 12 est activé, Relay13 ~ 16 est désactivé
+
+4: modifier IP:
+Http: // ip/port/41: changer la page IP et numéro de port; Lors du changement IP et numéro de port, IP1 ne doit pas être 0, tous les IP1-IP4 ne peuvent pas être supérieurs à 255; le port ne peut pas être 0; Le changement peut être réussi.
+
+5: restaurer l'usine:
+Appuyez brièvement sur l'interrupteur de réinitialisation, la LED clignotera comme un avertissement,
+Appuyez et maintenez l'interrupteur de réinitialisation jusqu'à ce que la LED s'allume pendant longtemps. Relâchez le bouton et la lumière s'éteint au bout d'un moment, indiquant que les paramètres d'usine sont restaurés. L'ip d'usine est: 192.168.1.4 Port: 30000
+
+Http: // 192.168.1.4/30000/99
+
+
+Emballage inclus:
+Module de relais * 1
+Module réseau * 1
