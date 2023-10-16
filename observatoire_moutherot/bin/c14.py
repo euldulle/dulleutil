@@ -117,6 +117,8 @@ def do_move():
         ustep_count=ustep_count+step_inc
     step_pos=(step_pos+step_inc*step_scale[step_range])
     GPIO.output(o_enable_c14,GPIO.LOW)
+
+pwr_stepper(c14_drv_addr, ON)
 #
 #
 #
@@ -146,6 +148,7 @@ while True:
         curses.echo()
         curses.endwin()
         GPIO.cleanup()
+        pwr_stepper(c14_drv_addr, OFF)
         sys.exit()
         break
 
@@ -163,3 +166,5 @@ while True:
     stdscr.refresh()
 #    n=DateTime.now()
     time.sleep(0.01)
+
+pwr_stepper(c14_drv_addr, OFF)

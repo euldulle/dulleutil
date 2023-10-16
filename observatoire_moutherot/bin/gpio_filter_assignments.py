@@ -1,7 +1,9 @@
+import os
+import urllib
+import urllib.request
 #
 #  TS stepper focuser
 #
-o_step_c14=26
 o_step_ts=17
 o_dir_ts=27
 o_enable_ts=22
@@ -32,9 +34,21 @@ o_sensor_fw=23
 # filterwheel stepper control :
 o_step_fw=4
 o_dir_fw=5
-o_enable_fw=6
+o_enable_fw=25
 # filterwheel filter assignments
 olm_fw_filters=[" UNKNOWN ", "LUMINANCE", "   RED    ", "  GREEN   ", "  BLUE  ", "   Ha    "]
 
 olm_fw_fifoname="/home/fmeyer/filter_wheel_fifo"
 olm_fw_statefile="/home/fmeyer/filter_wheel_state"
+
+fw_drv_addr=0
+c14_drv_addr=1
+ts_drv_addr=2
+OFF=0
+ON=1
+basew16=os.environ["OLM_BASER16"]
+
+def pwr_stepper(driver_addr,onoff):
+    url="%s/%.2d"%(basew16,2*driver_addr+onoff)
+    urllib.request.urlretrieve(url)
+

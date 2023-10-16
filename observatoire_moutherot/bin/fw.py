@@ -7,19 +7,11 @@ import RPi.GPIO as GPIO
 import curses
 import signal
 import os
-import urllib
-import urllib.request
-
 
 sys.path.insert(0, '/home/fmeyer/relay_server/web/page')
 sys.path.insert(0, '/home/fmeyer/bin')
 from gpio_filter_assignments import *
 statusword=""
-#
-def stepper_driver_on(onoff):
-    pass
-    # FIXME
-    # http://localhost:8028/page/relays.py?switch=http://relay16/30/01
 
 def update_statefile(status):
     with open(olm_fw_statefile,"w") as f:
@@ -31,13 +23,6 @@ def reset_index():
         update_statefile("INDEX_SEARCH")
         sleep(2)
 
-def pwr_stepper(onoff):
-    if onoff=="ON":
-        urllib.request.urlretrieve("http://relay16/30/01")
-
-    if onoff=="OFF":
-        urllib.request.urlretrieve("http://relay16/30/00")
-
 def clean_exit(signum, frame):
     global filter_index
 
@@ -45,7 +30,7 @@ def clean_exit(signum, frame):
         filter_index=initindex
 
     update_statefile("NOT_RUNNING")
-    pwr_stepper("OFF")
+    pwr_stepper(fw_drv_addr, OFF)
 
     if interactive:
         curses.nocbreak();
@@ -261,21 +246,28 @@ reed_sensor_on=1
 reed_sensor_off=0
 reed_state=-1
 
-LIMIT=1000
-step_count=0
-step_inc=1
-old_dir=1
-step_pos=0
-frequency=1600 # en Hz
+LIMIT=10000
+#
+# step "metrology" :
+#
+frequency=800 # en Hz
 duty_cycle=0.25
 delay_step=duty_cycle/frequency
 delay_steplow=(1.-duty_cycle)/frequency
 delay_steplow=delay_step
 usteps_per_step=8
-offset_sensor=50*usteps_per_step
+
+step_count=0
+step_inc=1
+old_dir=1
+step_pos=0
+#
+# index registration
+#
 abs_pos=0
 align_steps=40
 out_steps=160
+offset_sensor=50*usteps_per_step
 #
 # GPIO pin assingnment in file piobs_gpio_assignments.py
 #
@@ -335,7 +327,7 @@ except:
 
 fail_count=0
 
-pwr_stepper("ON")
+pwr_stepper(fw_drv_addr, ON)
 
 reset_index()
 #
@@ -439,7 +431,9 @@ while True:
             except:
                 if string=="STOP":
                     clean_exit(2,0)
+
     if index!=filter_index:
         seek_index(index)
-pwr_stepper("OFF")
+
+pwr_stepper(fw_drv_addr, OFF)
 
