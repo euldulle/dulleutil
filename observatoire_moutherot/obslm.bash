@@ -40,6 +40,7 @@ export OLM_ISERVPIDFILE=$OLM_IRUN/indiserver.pid
 export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
 export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
 
+# this is for non indi wheels:
 export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 
@@ -422,7 +423,7 @@ olm_indicmd(){
     ssh -i $HOME/.ssh/obsm -o ConnectTimeout=5 fmeyer@$OLM_IHOST $*
 }
 
-olm_fw_get_filter(){
+olm_fw_get_filter(){ # this is for non indi wheels,
     ping -c 1 -W 1 "$OLM_IHOST" >/dev/null 2>&1
     if test "$?" = "0"; then
         olm_indicmd olm_fw_get
@@ -431,7 +432,7 @@ olm_fw_get_filter(){
     fi
     }
 
-olm_fw_set_filter(){
+olm_fw_set_filter(){ # this is for non indi wheels,
     ping -c 1 -W 1 "$OLM_IHOST" >/dev/null 2>&1
     if test "$?" = "0"; then
         if test -n "$1"; then
@@ -535,12 +536,13 @@ olm_in_sync_eq8_time(){
 
 olm_in_dname(){
     case $1 in
-        indiserver|indi_atik_ccd|indi_eqmod_telescope|indi_qhy_ccd|indi_atik_wheel|indi_canon_ccd|fw.py)
+        indiserver|indi_atik_ccd|indi_eqmod_telescope|indi_qhy_ccd|indi_atik_wheel|indi_canon_ccd|indi_playerone_wheel|indi_playerone_ccd)
             driver=$1;;
         atik) driver=indi_atik_ccd;;
+        p1) driver=indi_playerone_ccd;;
         eq8) driver=indi_eqmod_telescope;;
         qhy) driver=indi_qhy_ccd;;
-        fw) driver=fw.py;;
+        fw) driver=indi_playerone_wheel;;
         eos) driver=indi_canon_ccd;;
         asi) driver=indi_asi_ccd;;
         *) driver="";;
@@ -564,22 +566,18 @@ olm_in_killdrivers(){
 olm_in_start(){
     olm_in_dname $1
     iserverlog "${FUNCNAME[0]} $driver ($1)"
-    if test "$driver" = "fw.py"; then
-        nohup $OLM_IROOT/$driver daemon >> $OLM_ISERVER_LOG 2>&1 &
+    if test "$driver" = "indiserver"; then
+        iserverlog "${FUNCNAME[0]} server, $driver ($1)"
+        nohup /usr/bin/indiserver -f $OLM_IFIFO >> $OLM_ISERVER_LOG 2>&1 &
     else
-        if test "$driver" = "indiserver"; then
-            iserverlog "${FUNCNAME[0]} server, $driver ($1)"
-            nohup /usr/bin/indiserver -f $OLM_IFIFO >> $OLM_ISERVER_LOG 2>&1 &
+        pid=$(pidof $driver)
+        if ! test "$?" = 0; then
+            echo start $driver |tee -a $OLM_IFIFO
+            driverpid=$(pidof $driver)
+            echo $driver running : $driverpid |tee -a $OLM_ISERVER_LOG
+            echo -n "$driverpid " >> $OLM_IRUN/$driver.pid
         else
-            pid=$(pidof $driver)
-            if ! test "$?" = 0; then
-                echo start $driver |tee -a $OLM_IFIFO
-                driverpid=$(pidof $driver)
-                echo $driver running : $driverpid |tee -a $OLM_ISERVER_LOG
-                echo -n "$driverpid " >> $OLM_IRUN/$driver.pid
-            else
-                echo existing driver $driver pid $pid
-            fi
+            echo existing driver $driver pid $pid
         fi
     fi
     }
@@ -652,10 +650,10 @@ olm_in_stop_all(){
 olm_in_stop(){
     olm_in_dname $1
     iserverlog "${FUNCNAME[0]} $driver ($1)"
-    if [[ $driver == "fw.py" ]]; then
+    if [[ $driver == "atikextfw" ]]; then # this is for non indi stuff,
         #
         # non-INDI processes here :
-        kill -SIGINT $(pidof -x $driver -o %PPID)
+        kill -SIGINT $(pidof -x indigo_server -o %PPID)
     else
         #
         # INDI drivers here, including server :
@@ -687,7 +685,9 @@ olm_in_cycle(){
     iserverlog END CYCLE /${FUNCNAME[0]}
     }
 
-olm_fw_set(){
+olm_fw_set(){ # this is for non indi wheels,
+    echo "# fw_set not implemented, see playerone server"
+    return
     if test -n "$1"; then
         if test -n "$(pidof -x fw.py)"; then
             echo $1 >$olm_fw_fifoname
@@ -699,19 +699,25 @@ olm_fw_set(){
     olm_fw_get
 }
 
-olm_fw_get(){
+olm_fw_get(){ # this is for non indi wheels,
+    echo "# fw_get not implemented, see playerone server"
+    return
     cat $olm_fw_statefile
 }
 
-olm_fw_start(){
-    nohup $OLM_IROOT/fw.py daemon >/dev/null 2>&1 &
+olm_fw_start(){ # this is for non indi wheels,
+
+    # nohup $OLM_IROOT/fw.py daemon >/dev/null 2>&1 &
+    return
 }
 
-olm_fw_stop(){
-    echo STOP >$olm_fw_fifoname
+olm_fw_stop(){ # this is for non indi wheels,
+    # echo STOP >$olm_fw_fifoname
+    return
+    killall indi_playerone_wheel
 }
 
-olm_fw_pwrstepper(){
+olm_fw_pwrstepper(){ # this is for non indi wheels,
     case "$1" in
         "ON")
             wget -O /dev/null http://$OLM_R16IP/30/01
@@ -720,6 +726,64 @@ olm_fw_pwrstepper(){
             wget -O /dev/null http://$OLM_R16IP/30/00
             ;;
     esac
+}
+
+fsbase="/sys/class/gpio"
+traveltime=10
+export bat1=171
+export bat2=172
+export cov1=173
+export cov2=174
+export pinlist="$bat1 $bat2 $cov1 $cov2"
+
+glist (){
+    for pin in $pinlist; do
+        echo -n "  $pin : "
+        cat $fsbase/gpio$pin/value
+    done
+}
+
+gstatus(){
+    gtest bat
+    gtest cov
+}
+
+ackbat(){
+    gack bat
+}
+
+ackcov(){
+    gack cov
+}
+
+gack(){
+    p1=$(eval echo \$${1}1)
+    p2=$(eval echo \$${1}2)
+    gclr $p1
+    gclr $p2
+    gstatus
+}
+
+gtest(){
+    if test -z "$1"; then
+        gstatus
+        return
+    fi
+    p1=$(eval echo \$${1}1)
+    p2=$(eval echo \$${1}2)
+
+    read a <$fsbase/gpio$p1/value
+    if test "$a" = "1"; then
+        echo "$1 is closed/unsafe"
+        return "1"
+    fi
+    read a <$fsbase/gpio$p2/value
+    if test "$a" = "1"; then
+        echo "$1 is closed/unsafe"
+        return "1"
+    fi
+    echo "$1 is opened/safe"
+    return 0
 }
 
 if test -n "$1"; then
