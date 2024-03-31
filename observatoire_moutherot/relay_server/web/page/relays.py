@@ -122,52 +122,53 @@ class RelayPage(RelServPage):
         self.status += '</table>'
         self.status += '<br/>\n'
 
-#######         #     # #     # ####### ####### #
-#               #  #  # #     # #       #       #
-#               #  #  # #     # #       #       #
-#####           #  #  # ####### #####   #####   #
-#               #  #  # #     # #       #       #
-#               #  #  # #     # #       #       #
-#       #######  ## ##  #     # ####### ####### #######
+# ###         #     # #     # ####### ####### #
+#             #  #  # #     # #       #       #
+#             #  #  # #     # #       #       #
+# #           #  #  # ####### #####   #####   #
+#             #  #  # #     # #       #       #
+#             #  #  # #     # #       #       #
+#     #######  ## ##  #     # ####### ####### #######
+# 	if 1== 0 :
+# 		self.status += '<table>\n'
+# 		self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
+#
+# 		p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_fw_get_filter'],stdout=subprocess.PIPE,shell=True)
+# 		fwline=p.stdout.readline().decode('utf-8').rstrip()
+# 		if fwline == "notup" or fwline == "" or fwline == None:
+# 			self.status += '<tr><td colspan="2">\n'
+# 			self.status += '<font color="#FF0000">cant get fw status (oid off ?)</font></td>\n'
+# 		else:
+# 			fwstatus=fwline.split()
+# 			self.status += '<tr><td colspan="2">\n'
+# 			self.status += '<font color="#FF0000">%s</font></td>\n'%fwstatus[2]
+#
+# 			filt=self.filters[int(fwstatus[0])]
+#
+# 			#for i in range (1,5):
+# 			#    fwsetcom[i]='fw_set %d'%(i)
+#
+# 			self.status += ('<tr><td>Current : </td><td> <font color="'
+# 					+filt['color']+'">'+filt['filter']+'</font></td></tr>\n')
+#
+# #               if  (fwstatus[2] == 'not_running'):
+# #                   self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
+# #               else:
+# #                   self.status += '<td><font color="#00B000">'+filters[] + '</font></td>\n'
+# 			for f in self.filters:
+# 				pos=f['pos']
+# 				if pos!='0':
+# 					self.status+= '<tr><td>Select :</td>'
+# 					self.status += '<td>'
+# 					if pos==filt['pos']:
+# 						self.status += '<font color="'+filt['color']+'">'+filt['filter']+'</font></td>'
+# 					else:
+# 						self.status += '<a href="/page/relays.py?fwset='+pos+'" style="color: '+f['color']+'">'+f['filter']+'</font></a></td>'
+#
+# 			self.status += '</tr>\n'
+#
+# 		self.status += '</table>'
 
-        self.status += '<table>\n'
-        self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
-
-        p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_fw_get_filter'],stdout=subprocess.PIPE,shell=True)
-        fwline=p.stdout.readline().decode('utf-8').rstrip()
-        if fwline == "notup" or fwline == "" or fwline == None:
-            self.status += '<tr><td colspan="2">\n'
-            self.status += '<font color="#FF0000">cant get fw status (oid off ?)</font></td>\n'
-        else:
-            fwstatus=fwline.split()
-            self.status += '<tr><td colspan="2">\n'
-            self.status += '<font color="#FF0000">%s</font></td>\n'%fwstatus[2]
-
-            filt=self.filters[int(fwstatus[0])]
-
-            #for i in range (1,5):
-            #    fwsetcom[i]='fw_set %d'%(i)
-
-            self.status += ('<tr><td>Current : </td><td> <font color="'
-                    +filt['color']+'">'+filt['filter']+'</font></td></tr>\n')
-
-#               if  (fwstatus[2] == 'not_running'):
-#                   self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
-#               else:
-#                   self.status += '<td><font color="#00B000">'+filters[] + '</font></td>\n'
-            for f in self.filters:
-                pos=f['pos']
-                if pos!='0':
-                    self.status+= '<tr><td>Select :</td>'
-                    self.status += '<td>'
-                    if pos==filt['pos']:
-                        self.status += '<font color="'+filt['color']+'">'+filt['filter']+'</font></td>'
-                    else:
-                        self.status += '<a href="/page/relays.py?fwset='+pos+'" style="color: '+f['color']+'">'+f['filter']+'</font></a></td>'
-
-            self.status += '</tr>\n'
-
-        self.status += '</table>'
         self.status += '</div>'
         return self.status
 
@@ -331,6 +332,16 @@ class RelayPage(RelServPage):
         if "switch" in form:
             try:
                 url=form.getvalue('switch')
+                if url.find("/30/24")!=-1:
+                    page += '<div> Poweroff eq8 ? <a href=/page/relays.py?switch=eq8-confirm>Confirm</a></div>'
+                    page += '</div>'
+                    form['switch'].value='None'
+
+                    return page
+
+                if url.find("eq8-confirm")!=-1:
+                    url="http://relay16/30/24"
+
                 try:
                     #
                     # address the 8-switch actions
@@ -459,7 +470,7 @@ class RelayPage(RelServPage):
         return page
 
     def getRefreshSeconds(self):
-        return 10
+        return 120
 
 form = cgi.FieldStorage()
 
