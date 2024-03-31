@@ -64,6 +64,20 @@ class RelayPage(RelServPage):
         self.status += '<font color="#0000FF">Shutdown</font></a></td></tr>'
         self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=timesync-eq8" title="sync mount to UTC">'
         self.status += '<font color="#0000FF">Time sync EQ8</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=closecov" title="close cover">'
+        self.status += '<font color="#0000FF">close cover</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=opencov" title="open cover">'
+        self.status += '<font color="#0000FF">open cover</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=ackcov" title="clear cover status">'
+        self.status += '<font color="#0000FF">clr cover status</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=closebat" title="close bathinov">'
+        self.status += '<font color="#0000FF">close bathinov</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=openbat" title="open bathinov">'
+        self.status += '<font color="#0000FF">open bathinov</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=ackbat" title="clear bathinov status">'
+        self.status += '<font color="#0000FF">clr bathinov status</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=gstop" title="STOP">'
+        self.status += '<font color="#0000FF">STOP</font></a></td></tr>'
         self.status += '</table>\n'
         self.status += '</div>'
         self.status += '<br/>\n'
@@ -328,6 +342,13 @@ class RelayPage(RelServPage):
                 p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
                 form['session'].value='None'
                 sleep(self.delay)
+
+        if "cover" in form:
+            action=form.getvalue('cover')
+            command=Params.getObslmDir()+'obslm.bash '+action
+            p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
+            form['cover'].value='None'
+            sleep(self.delay)
 
         if "switch" in form:
             try:
