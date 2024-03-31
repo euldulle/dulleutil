@@ -321,7 +321,8 @@ olm_cold_init(){
     #
     # do not initialize over a previous shutdown, unless arg "force" is given
     #
-    if ! [[ test -f "$OLM_SHUTDOWN_SEM" ]] || [[ test "$1" = "force"]]; then
+    if ! test -f "$OLM_SHUTDOWN_SEM" || test "$1" = "force"; then
+    #if ! test -f "$OLM_SHUTDOWN_SEM" ; then
         olm_log "  ${FUNCNAME[0]} : starting init sequence"
         olm_init_r8_full
         if test "$?" = 0; then
@@ -366,10 +367,10 @@ olm_init_r16_full(){
     olm_setr16 USB 1
     olm_setr16 EQ8 1
     olm_setr16 DEW 1
-    olm_setr16 ATK 1
-    olm_setr16 FWST 1
-    olm_setr16 C14ST 1
-    olm_setr16 TSST 1
+    #olm_setr16 ATK 1
+    #olm_setr16 FWST 1
+    #olm_setr16 C14ST 1
+    #olm_setr16 TSST 1
     olm_setr16 OID 1
     olm_log "  ${FUNCNAME[0]} : exiting"
 	return 0
