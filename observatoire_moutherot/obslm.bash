@@ -39,6 +39,8 @@ export OLM_IFIFO=$OLM_IROOT/indififo
 export OLM_ISERVPIDFILE=$OLM_IRUN/indiserver.pid
 export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
 export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
+export OLM_O2SHARE="$OLM_ROOT/o2oid"
+export OLM_BATSTATUS=$OLM_O2SHARE/batstatus.txt
 
 # this is for non indi wheels:
 export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
@@ -729,7 +731,8 @@ olm_fw_pwrstepper(){ # this is for non indi wheels,
     esac
 }
 
-fsbase="/sys/class/gpio"
+
+export fsbase="/sys/class/gpio"
 traveltime=10
 export bat1=171
 export bat2=172
@@ -745,16 +748,16 @@ glist (){
 }
 
 gstatus(){
-    gtest bat
-    gtest cov
-}
-
-ackbat(){
-    gack bat
+    gtest bat > $OLM_BATSTATUS
+    gtest cov >>$OLM_BATSTATUS
 }
 
 ackcov(){
     gack cov
+}
+
+ackbat(){
+    gack bat
 }
 
 gack(){
@@ -775,17 +778,117 @@ gtest(){
 
     read a <$fsbase/gpio$p1/value
     if test "$a" = "1"; then
-        echo "$1 is closed/unsafe"
-        return "1"
+        echo -n "1 "
+        return
     fi
+
     read a <$fsbase/gpio$p2/value
+    echo $a >$batlog
     if test "$a" = "1"; then
-        echo "$1 is closed/unsafe"
-        return "1"
+        echo -n "1 "
+        return
     fi
-    echo "$1 is opened/safe"
-    return 0
+    echo -n "0 "
 }
+
+gclr (){
+    pin=$fsbase/gpio$1
+    echo 0 |sudo tee $pin/value >/dev/null
+}
+
+gset (){
+    pin=$fsbase/gpio$1
+    echo 1 |sudo tee $pin/value >/dev/null
+    glist
+}
+
+gstop(){
+    stopcov
+    stopbat
+}
+
+closecov(){
+    gtest bat
+    if test "$?" = 0; then
+        gclr $cov1 >/dev/null 2>&1
+        gset $cov2 >/dev/null 2>&1
+        nohup sleep $traveltime  >/dev/null 2>&1 && gset $cov1 >/dev/null & >/dev/null 2>&1
+    else
+        echo "bat not safe, not closing cov"
+    fi
+    gstatus
+}
+
+stopcov(){
+    killall sleep
+    sleep .5
+    gset $cov1 >/dev/null 2>&1
+    gset $cov2 >/dev/null 2>&1
+    gstatus
+}
+
+opencov(){
+    gtest bat
+    if test "$?" = 0; then
+        gset $cov1 >/dev/null 2>&1
+        gclr $cov2 >/dev/null 2>&1
+        nohup sleep $traveltime >/dev/null 2>&1  && gclr $cov1 >/dev/null & >/dev/null 2>&1
+    else
+        echo "bat not safe, not opening cov"
+    fi
+    gstatus
+}
+
+closebat(){
+    gtest cov
+    if test "$?" = 0; then
+        gclr $bat1 >/dev/null 2>&1
+        gset $bat2 >/dev/null 2>&1
+        nohup sleep $traveltime >/dev/null 2>&1 && gset $bat1 >/dev/null & >/dev/null 2>&1
+    else
+        echo "cov not safe, not closing bat"
+    fi
+    gstatus
+}
+
+stopbat(){
+    killall sleep
+    sleep .5
+    gset $bat1 >/dev/null 2>&1
+    gset $bat2 >/dev/null 2>&1
+    gstatus
+}
+
+openbat(){
+    gtest cov
+    if test "$?" = 0; then
+        gset $bat1 >/dev/null 2>&1
+        gclr $bat2  >/dev/null 2>&1
+        nohup sleep $traveltime >/dev/null 2>&1 && gclr $bat1 >/dev/null & >/dev/null 2>&1
+    else
+        echo "cov not safe, not opening bat"
+    fi
+    gstatus
+}
+
+export gset gclr glist oppenbat opencov clrcov
+
+covinit(){
+for i in $pinlist; do
+    pin=$fsbase/gpio"$i"
+    if ! test -d $pin; then
+        echo $i |sudo tee -a $fsbase/export
+        echo out |sudo tee -a $pin/direction
+        echo $pin ready
+    else
+        echo $pin already ready
+    fi
+done
+}
+
+if ! test -d $fsbase/gpio"$bat1"; then
+    covinit >$logfile
+fi
 
 if test -n "$1"; then
 	command="$1"
