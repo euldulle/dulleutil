@@ -10,9 +10,9 @@ o_enable_ts=22
 #
 #  C14 stepper focuser
 #
-o_step_c14=16
-o_dir_c14=13
-o_enable_c14=22
+o_step_c14=16   # odroid IO (used by the eul_focuser indi driver): 33 
+o_dir_c14=13    # odroid IO (used by the eul_focuser indi driver): 31 
+o_enable_c14=22 # odroid IO (used by the eul_focuser indi driver): 22 
 #
 #  DC command
 #
