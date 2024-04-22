@@ -1,7 +1,8 @@
 # drivers/scripts de controle a demarrer
 # lu par les fonctions olm_in_start et al in obslm.bash
 #
-atik
+#atik replaced by playerone p1
+p1
 qhy
 eq8
 fw
