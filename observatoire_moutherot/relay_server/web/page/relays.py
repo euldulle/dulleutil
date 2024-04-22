@@ -58,26 +58,43 @@ class RelayPage(RelServPage):
         self.status='<div class="column"><table>'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Session control</font></th></tr></thead>\n'
 
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=coldstart" title="Init session">'
-        self.status += '<font color="#0000FF">Init session</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=shutdown" title="Shutting down everything">'
-        self.status += '<font color="#0000FF">Shutdown</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=timesync-eq8" title="sync mount to UTC">'
-        self.status += '<font color="#0000FF">Time sync EQ8</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=closecov" title="close cover">'
-        self.status += '<font color="#0000FF">close cover</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=opencov" title="open cover">'
-        self.status += '<font color="#0000FF">open cover</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=ackcov" title="clear cover status">'
-        self.status += '<font color="#0000FF">clr cover status</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=closebat" title="close bathinov">'
-        self.status += '<font color="#0000FF">close bathinov</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=openbat" title="open bathinov">'
-        self.status += '<font color="#0000FF">open bathinov</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=ackbat" title="clear bathinov status">'
-        self.status += '<font color="#0000FF">clr bathinov status</font></a></td></tr>'
-        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=gstop" title="STOP">'
-        self.status += '<font color="#0000FF">STOP</font></a></td></tr>'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=coldstart" title="Init session">\n'
+        self.status += '<font color="#0000FF">Init session</font></a></td></tr>\n'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=shutdown" title="Shutting down everything">\n'
+        self.status += '<font color="#0000FF">Shutdown</font></a></td></tr>\n'
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?session=timesync-eq8" title="sync mount to UTC">\n'
+        self.status += '<font color="#0000FF">Time sync EQ8</font></a></td></tr>\n'
+
+        with open("/home/fmeyer/observatoire_moutherot/o2oid/capstatus.txt" , 'r') as capstatus:
+            try:
+                bat,cov=capstatus.readline().strip().split()
+            except:
+                bat="2"
+                cov="2"
+        batcss=""
+        covcss=""
+        if(bat=="1"):
+            covcss='class="disabled"'
+        if(cov=="1"):
+            batcss='class="disabled"'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=closecov" ' +covcss+ ' title="close cover">\n'
+        self.status += '<font color="#0000FF">close cover</font></a></td></tr>\n'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=opencov" title="open cover">\n'
+        self.status += '<font color="#0000FF">open cover</font></a></td></tr>\n'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=closebat"  ' +batcss+ ' title="close bathinov">\n'
+        self.status += '<font color="#0000FF">close bathinov</font></a></td></tr>\n'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=openbat" title="open bathinov">\n'
+        self.status += '<font color="#0000FF">open bathinov</font></a></td></tr>\n'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=ack" title="Clear Status">\n'
+        self.status += '<font color="#0000FF">Clear status</font></a></td></tr>\n'
+
+        self.status += '<tr><td style="text-align:center;"><a href="/page/relays.py?cover=gstop" title="STOP">\n'
+        self.status += '<font color="#0000FF">STOP</font></a></td></tr>\n'
         self.status += '</table>\n'
         self.status += '</div>'
         self.status += '<br/>\n'
@@ -129,8 +146,8 @@ class RelayPage(RelServPage):
         self.status += '<table>\n'
         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Single boards control</font></th></tr></thead>\n'
 
-        self.status += '<tr><td colspan="2"><font color="#008000">Oid</font></td>'
-        self.status += '<td style="text-align:center;"><a href="/page/relays.py?reboot=indi"><font color="#0000FF">reboot</font></a></td>'
+        self.status += '<tr><td colspan="2"><font color="#008000">Oid</font></td>\n'
+        self.status += '<td style="text-align:center;"><a href="/page/relays.py?reboot=indi">\n<font color="#0000FF">reboot</font></a></td>\n'
         self.status += '<td style="text-align:center;"><a href="/page/relays.py?shutdown=indi">shutdown</a></td></tr>\n'
 
         self.status += '</table>'
@@ -143,45 +160,45 @@ class RelayPage(RelServPage):
 #             #  #  # #     # #       #       #
 #             #  #  # #     # #       #       #
 #     #######  ## ##  #     # ####### ####### #######
-# 	if 1== 0 :
-# 		self.status += '<table>\n'
-# 		self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
+#     if 1== 0 :
+#         self.status += '<table>\n'
+#         self.status += '<thead> <tr><th colspan="4" align="center"> <font color="#444488"> Filter Wheel</font></th></tr></thead>\n'
 #
-# 		p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_fw_get_filter'],stdout=subprocess.PIPE,shell=True)
-# 		fwline=p.stdout.readline().decode('utf-8').rstrip()
-# 		if fwline == "notup" or fwline == "" or fwline == None:
-# 			self.status += '<tr><td colspan="2">\n'
-# 			self.status += '<font color="#FF0000">cant get fw status (oid off ?)</font></td>\n'
-# 		else:
-# 			fwstatus=fwline.split()
-# 			self.status += '<tr><td colspan="2">\n'
-# 			self.status += '<font color="#FF0000">%s</font></td>\n'%fwstatus[2]
+#         p=subprocess.Popen([Params.getObslmDir()+'obslm.bash olm_fw_get_filter'],stdout=subprocess.PIPE,shell=True)
+#         fwline=p.stdout.readline().decode('utf-8').rstrip()
+#         if fwline == "notup" or fwline == "" or fwline == None:
+#             self.status += '<tr><td colspan="2">\n'
+#             self.status += '<font color="#FF0000">cant get fw status (oid off ?)</font></td>\n'
+#         else:
+#             fwstatus=fwline.split()
+#             self.status += '<tr><td colspan="2">\n'
+#             self.status += '<font color="#FF0000">%s</font></td>\n'%fwstatus[2]
 #
-# 			filt=self.filters[int(fwstatus[0])]
+#             filt=self.filters[int(fwstatus[0])]
 #
-# 			#for i in range (1,5):
-# 			#    fwsetcom[i]='fw_set %d'%(i)
+#             #for i in range (1,5):
+#             #    fwsetcom[i]='fw_set %d'%(i)
 #
-# 			self.status += ('<tr><td>Current : </td><td> <font color="'
-# 					+filt['color']+'">'+filt['filter']+'</font></td></tr>\n')
+#             self.status += ('<tr><td>Current : </td><td> <font color="'
+#                     +filt['color']+'">'+filt['filter']+'</font></td></tr>\n')
 #
 # #               if  (fwstatus[2] == 'not_running'):
 # #                   self.status += '<td> <font color="#FF0000">NOTUP</font></td>\n'
 # #               else:
 # #                   self.status += '<td><font color="#00B000">'+filters[] + '</font></td>\n'
-# 			for f in self.filters:
-# 				pos=f['pos']
-# 				if pos!='0':
-# 					self.status+= '<tr><td>Select :</td>'
-# 					self.status += '<td>'
-# 					if pos==filt['pos']:
-# 						self.status += '<font color="'+filt['color']+'">'+filt['filter']+'</font></td>'
-# 					else:
-# 						self.status += '<a href="/page/relays.py?fwset='+pos+'" style="color: '+f['color']+'">'+f['filter']+'</font></a></td>'
+#             for f in self.filters:
+#                 pos=f['pos']
+#                 if pos!='0':
+#                     self.status+= '<tr><td>Select :</td>'
+#                     self.status += '<td>'
+#                     if pos==filt['pos']:
+#                         self.status += '<font color="'+filt['color']+'">'+filt['filter']+'</font></td>'
+#                     else:
+#                         self.status += '<a href="/page/relays.py?fwset='+pos+'" style="color: '+f['color']+'">'+f['filter']+'</font></a></td>'
 #
-# 			self.status += '</tr>\n'
+#             self.status += '</tr>\n'
 #
-# 		self.status += '</table>'
+#         self.status += '</table>'
 
         self.status += '</div>'
         return self.status
@@ -345,7 +362,7 @@ class RelayPage(RelServPage):
 
         if "cover" in form:
             action=form.getvalue('cover')
-            command=Params.getObslmDir()+'obslm.bash '+action
+            command=Params.getObslmDir()+'obslm.bash olm_indicmd '+action
             p=subprocess.Popen([command],stdout=subprocess.PIPE,shell=True)
             form['cover'].value='None'
             sleep(self.delay)
@@ -376,29 +393,33 @@ class RelayPage(RelServPage):
                     # address the 16-switch actions
                     #
 
-                    urllib.request.urlretrieve(url,filename="/dev/null")
-                    request = url[-2:]
-                    intreq = int(request)
+                    try:
+                        urllib.request.urlretrieve(url,filename="/dev/null")
+                        request = url[-2:]
+                        intreq = int(request)
 
-                    rel = self.relays[int(intreq/2)]
-                    if rel['type'] == 'temp':
-                        if intreq % 2 == 0:
-                            opreq = intreq + 1
-                        else:
-                            opreq = intreq - 1
-                        sleep(self.delay)
+                        rel = self.relays[int(intreq/2)]
+                        if rel['type'] == 'temp':
+                            if intreq % 2 == 0:
+                                opreq = intreq + 1
+                            else:
+                                opreq = intreq - 1
+                            sleep(self.delay)
 
-                        newurl=sub("%s$" %request, "%.2d"%opreq, url)
-                        urllib.request.urlretrieve(newurl,filename="/dev/null")
+                            newurl=sub("%s$" %request, "%.2d"%opreq, url)
+                            urllib.request.urlretrieve(newurl,filename="/dev/null")
 
-                    if "action" in form:
-                        sleep(1)
-                        #
-                        # Sending stop
-                        #
-                        urllib.request.urlretrieve("http://relay16/30/29",filename="/dev/null")
-                        sleep(self.delay)
-                        urllib.request.urlretrieve("http://relay16/30/28",filename="/dev/null")
+                        if "action" in form:
+                            sleep(1)
+                            #
+                            # Sending stop
+                            #
+                            urllib.request.urlretrieve("http://relay16/30/29",filename="/dev/null")
+                            sleep(self.delay)
+                            urllib.request.urlretrieve("http://relay16/30/28",filename="/dev/null")
+                    except:
+                        page = "erreur relay16 (is 192.168.0.28 alive ?"
+
 
             except:
                 page = "error urllib"
