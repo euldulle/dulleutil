@@ -8,19 +8,58 @@ export SIRLOG="$SIRROOT/log"
 export PATH="$SIRBIN:$PATH"
 
 chkseq(){
+    let count=0
+    regex=""
+    seqs="all"
+    local OPTIND opt
+
+    while getopts "fdb" opt; do
+      case $opt in
+        f)
+          # flats of any flavor
+          regex="/flats*"
+          seqs="flat"
+          let count=$count+1
+          ;;
+        d)
+          # darks
+          regex="/darks*"
+          seqs="dark"
+          let count=$count+1
+          ;;
+        b)
+          # bias
+          regex="/bias(es)*|offsets*"
+          seqs="bias/offset"
+          let count=$count+1
+          ;;
+      esac
+    done
+
+    if test "$count" -gt "1"; then
+        echo "Error: only one of -d -f -b is allowed" >&2
+        return 1
+    fi
+
+    shift $((OPTIND-1))
     rootdir=$1
+
     if test -z "$rootdir"; then
         rootdir=$(pwd)
     else
-        rootdir=$(realpath $rootdir)
+        if ! test -d "$rootdir"; then
+            echo "$rootdir not a directory">&2
+            return 1
+        else
+            rootdir=$(realpath $rootdir)
+        fi
     fi
     siril -s - <<ENDSIRIL >$SIRLOG/logsiril 2>&1
 cd $rootdir
 chkseq
 ENDSIRIL
-echo Checking sequences in $rootdir: >&2
-cd $rootdir
-ls -w1 *.seq 2>/dev/null
+echo Checking $seqs sequences in $rootdir: >&2
+ls -w1 $rootdir/*.seq |grep -i "$regex" 2>/dev/null |sed 's/^/	/'
 if ! test "$?" = "0"; then
     echo "No sequence found in dir $rootdir" >&2
 fi
