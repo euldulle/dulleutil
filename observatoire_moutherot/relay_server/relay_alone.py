@@ -11,7 +11,10 @@ network="192.168.1"
 r16ip=network+".28"
 r16=r16ip+"/30"
 relay16_read="http://"+r16+"/43"
-relay8_read="http://fmeyer:4so4xRg9@${OLM_R8IP}${OLM_R8PORT}/relays.cgi"
+
+r8ip=network+".23"
+relay8_read="http://fmeyer:4so4xRg9@"+r8ip+"/relays.cgi"
+
 buttons=[]
 grid_frame16 = []
 grid_frame8 = []
@@ -23,7 +26,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 0,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -33,7 +35,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 1,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -43,7 +44,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 2,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -53,7 +53,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 3,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -63,7 +62,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 4,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -73,7 +71,6 @@ relays_16 = {
         'type': "SWITCH",
         'url': "",
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -83,7 +80,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 6,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -93,7 +89,6 @@ relays_16 = {
         'type': "SWITCH",
         'position': 7,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -103,7 +98,6 @@ relays_16 = {
         'type': "TEMP",
         'position': 8,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -113,7 +107,6 @@ relays_16 = {
         'type': "TEMP",
         'position': 9,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         },
 
@@ -123,7 +116,6 @@ relays_16 = {
         'type': "TEMP",
         'position': 10,
         'button': [],
-        'indicator': [],
         'state': "OFF"
         }
     }
@@ -132,49 +124,65 @@ relays_8 = {
     'Relay1': {
         'name': 'light',
         'position': 0,
-        'state': 0
+        'button': [],
+        'addr': 1,
+        'state': "OFF"
         },
 
     'Relay2': {
         'name': 'pilier',
         'position': 1,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         },
 
     'Relay3': {
         'name': 'camera',
         'position': 2,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         },
 
     'Relay4': {
         'name': 'Prises N',
         'position': 3,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         },
 
     'Relay5': {
         'name': 'Prises S (Toit)',
         'position': 4,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         },
 
     'Relay6': {
         'name': 'Relay16',
         'position': 5,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         },
 
     'Relay7': {
         'name': 'CCD',
         'position': -1,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         },
 
     'Relay8': {
         'name': 'CCD',
         'position': -1,
-        'state': 0
+        'button': [],
+        'addr': 2,
+        'state': "OFF"
         }
     }
 
@@ -183,10 +191,16 @@ relays_8 = {
 def quit_application():
     root.destroy()  # Close the main window and terminate the application
 
-def get_relay8_status():
-    with open ("/tmp/relay8", "w") as f:
-        make_http_request(relay16_read).text
+def read_status():
+    get_relay8_status()
+    get_relay16_status()
+    root.after(5000, read_status)
 
+def get_relay8_status():
+    #with open ("/tmp/relay8", "w") as f:
+    status=make_http_request(relay8_read).text.splitlines()
+    filtered=[line for line in status if ': ' in line]
+    print(filtered[0])
 
 
 def get_relay16_status():
@@ -269,6 +283,7 @@ def invert_last_bit_in_url(url):
 # Define internal functions to be executed for each cell
 def callback8(relayid, relais):
     print("Function r8 was called!",relayid, relais['name'])
+    get_relay16_status()
 
 def callback16(relayid, relais):
     #print("Function r16 was called!",relayid, relais['name'])
@@ -329,7 +344,7 @@ if __name__ == "__main__":
     top_frame.pack()
 
     # Refresh button spanning 2 columns
-    refresh_button = tk.Button(top_frame, text="Refresh", command=get_relay16_status)
+    refresh_button = tk.Button(top_frame, text="Refresh", command=read_status)
     refresh_button.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
     # Frame to hold the grid of buttons
     #grid_frame = tk.Frame(root)
@@ -341,6 +356,6 @@ if __name__ == "__main__":
     # Quit button
     quit_button = tk.Button(root, text="Quit", command=quit_application)
     quit_button.pack(side=tk.BOTTOM, padx=10, pady=10)
-    get_relay16_status()
+    read_status()
 
     root.mainloop()
