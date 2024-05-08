@@ -3,80 +3,128 @@ import os
 import tkinter as tk
 import requests
 import subprocess
+import re
+import asyncio
+from time import sleep
+
 network="192.168.1"
 r16ip=network+".28"
 r16=r16ip+"/30"
 relay16_read="http://"+r16+"/43"
 relay8_read="http://fmeyer:4so4xRg9@${OLM_R8IP}${OLM_R8PORT}/relays.cgi"
 buttons=[]
-indicators=[]
 grid_frame16 = []
 grid_frame8 = []
-
-# Function to toggle the switch status (for demonstration)
-def toggle_switch_status():
-    global is_switch_on
-    is_switch_on = not is_switch_on
-    update_indicators()
-
-# Function to update the indicator colors based on switch status
-def update_indicators():
-    for button, indicator in zip(buttons, indicators):
-        if is_switch_on:
-            indicator.config(bg='green')  # Set indicator color to green if switch is on
-        else:
-            indicator.config(bg='red')  # Set indicator color to red if switch is off
-
-# Initialize switch status (for demonstration)
-is_switch_on = False
 
 relays_16 = {
     'Relay-12': {
         'name': 'USB HUB',
+        'url': "",
+        'type': "SWITCH",
         'position': 0,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-13': {
         'name': 'EQ8',
+        'url': "",
+        'type': "SWITCH",
         'position': 1,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-10': {
         'name': 'Oid',
+        'url': "",
+        'type': "SWITCH",
         'position': 2,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-09': {
         'name': 'Dew Heater',
+        'url': "",
+        'type': "SWITCH",
         'position': 3,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-11': {
         'name': 'CCD',
+        'url': "",
+        'type': "SWITCH",
         'position': 4,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-01': {
         'name': 'FW Stepper',
         'position': 5,
-        'state': 0
+        'type': "SWITCH",
+        'url': "",
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-02': {
         'name': 'C14 Stepper',
+        'url': "",
+        'type': "SWITCH",
         'position': 6,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         },
 
     'Relay-03': {
         'name': 'TS Stepper',
+        'url': "",
+        'type': "SWITCH",
         'position': 7,
-        'state': 0
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
+        },
+
+    'Relay-14': {
+        'name': 'Close Roof',
+        'url': "",
+        'type': "TEMP",
+        'position': 8,
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
+        },
+
+    'Relay-15': {
+        'name': 'Stop Roof',
+        'url': "",
+        'type': "TEMP",
+        'position': 9,
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
+        },
+
+    'Relay-16': {
+        'name': 'Open Roof',
+        'url': "",
+        'type': "TEMP",
+        'position': 10,
+        'button': [],
+        'indicator': [],
+        'state': "OFF"
         }
     }
 
@@ -139,13 +187,6 @@ def get_relay8_status():
     with open ("/tmp/relay8", "w") as f:
         make_http_request(relay16_read).text
 
-    # Destroy all existing buttons
-    for button in grid_frame8.winfo_children():
-        button.destroy()
-
-    # Recreate the grid of buttons
-    create_grid(relays_18.items(),16)
-
 
 
 def get_relay16_status():
@@ -172,20 +213,17 @@ def get_relay16_status():
     if return_code == 0:
         for line in stdout.splitlines():
             fields=line.split()
-            print(fields)
             if fields[0] in relays_16:
-                relays_16[fields[0]]['state']=fields[1]
+                relay=relays_16[fields[0]];
+                if fields[1]!=relay['state']:
+                    relay['state']=fields[1]
+                    #relay['indicator'].config(text=relay['state'], fg='red' if relay['state'] == 'OFF' else 'green')
+                    relay['button'].config(fg='red' if relay['state'] == 'OFF' else 'green')
+
+                relay['url']=fields[2]
             
     else:
         print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
-
-    # Destroy all existing buttons
-    for button in grid_frame16.winfo_children():
-        button.destroy()
-
-    # Recreate the grid of buttons
-    create_grid(relays_16.items(),16)
-
 
 def make_http_request(url):
     try:
@@ -202,7 +240,30 @@ def make_http_request(url):
         # Handle exceptions (e.g., connection error, timeout)
         print(f"HTTP Request Error: {e}")
 
-
+def invert_last_bit_in_url(url):
+    # Find the last segment of the URL that contains the hexadecimal value
+    match = re.search(r'/([0-9a-fA-F]{2})$', url)
+    
+    if match:
+        # Extract the hexadecimal value from the URL
+        hex_value = match.group(1)
+        
+        # Convert the hexadecimal value to an integer
+        decimal_value = int(hex_value, 16)
+        
+        # Flip the least significant bit (LSB)
+        inverted_value = decimal_value ^ 0x01
+        
+        # Convert the inverted value back to a hexadecimal string
+        inverted_hex = format(inverted_value, '02x')  # Format as a 2-character hexadecimal string
+        
+        # Replace the original hexadecimal value with the inverted value in the URL
+        modified_url = url[:match.start(1)] + inverted_hex + url[match.end(1):]
+        
+        return modified_url
+    else:
+        # If no match is found (e.g., no hexadecimal value in the URL), return the original URL
+        return url
 
 
 # Define internal functions to be executed for each cell
@@ -210,7 +271,15 @@ def callback8(relayid, relais):
     print("Function r8 was called!",relayid, relais['name'])
 
 def callback16(relayid, relais):
-    print("Function r16 was called!",relayid, relais['name'])
+    #print("Function r16 was called!",relayid, relais['name'])
+    #print(relays_16[relayid]['url'])
+    make_http_request(relays_16[relayid]['url'])
+    url=invert_last_bit_in_url(relays_16[relayid]['url'])
+    #print(url)
+    if relays_16[relayid]['type']=='TEMP':
+        sleep(.1)
+        make_http_request(url)
+
     get_relay16_status()
 
 def create_grid(items, rset):
@@ -225,23 +294,17 @@ def create_grid(items, rset):
 
             # Create button and bind the corresponding function
             if rset==16:
-                button = tk.Button(frame, text=button_text, width=20, height=2,
-                               command=lambda rid=relayid, relais=relay: callback16(rid,relais))
+                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2, 
+                               fg='red' if relay['state']=="OFF" else 'green',
+                               command=lambda rid=relayid, relais=relay: callback16(rid,relais),
+                                            font=('Helvetica', 12 ))
             else:
-                button = tk.Button(frame, text=button_text, width=20, height=2,
+                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
                                command=lambda rid=relayid, relais=relay: callback8(rid,relais))
             row=relay['position']
-            button.grid(row=row, column=0, padx=5, pady=5)
+            relay['button'].grid(row=row, column=0, padx=5, pady=5)
 
-            # Indicator labels for series 1
-            if relay['state']=="OFF":
-                indicator = tk.Label(frame, text='OFF', fg='red', width=5)
-            else:
-                indicator = tk.Label(frame, text='ON', fg='green', width=5)
-            indicator.grid(row=row, column=1, sticky='nw')
-
-            buttons.append(button)
-            indicators.append(indicator)
+            buttons.append(relay['button'])
 
 # Example usage:
 if __name__ == "__main__":
@@ -278,6 +341,6 @@ if __name__ == "__main__":
     # Quit button
     quit_button = tk.Button(root, text="Quit", command=quit_application)
     quit_button.pack(side=tk.BOTTOM, padx=10, pady=10)
-
+    get_relay16_status()
 
     root.mainloop()
