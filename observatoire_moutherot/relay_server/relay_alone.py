@@ -141,7 +141,7 @@ relays_8 = {
         'name': 'camera',
         'position': 2,
         'button': [],
-        'addr': 2,
+        'addr': 3,
         'state': "OFF"
         },
 
@@ -149,7 +149,7 @@ relays_8 = {
         'name': 'Prises N',
         'position': 3,
         'button': [],
-        'addr': 2,
+        'addr': 4,
         'state': "OFF"
         },
 
@@ -157,7 +157,7 @@ relays_8 = {
         'name': 'Prises S (Toit)',
         'position': 4,
         'button': [],
-        'addr': 2,
+        'addr': 5,
         'state': "OFF"
         },
 
@@ -165,7 +165,7 @@ relays_8 = {
         'name': 'Relay16',
         'position': 5,
         'button': [],
-        'addr': 2,
+        'addr': 6,
         'state': "OFF"
         },
 
@@ -173,7 +173,7 @@ relays_8 = {
         'name': 'CCD',
         'position': -1,
         'button': [],
-        'addr': 2,
+        'addr': 7,
         'state': "OFF"
         },
 
@@ -181,7 +181,7 @@ relays_8 = {
         'name': 'CCD',
         'position': -1,
         'button': [],
-        'addr': 2,
+        'addr': 8,
         'state': "OFF"
         }
     }
@@ -197,16 +197,28 @@ def read_status():
     root.after(5000, read_status)
 
 def get_relay8_status():
-    #with open ("/tmp/relay8", "w") as f:
-    status=make_http_request(relay8_read).text.splitlines()
+    try:
+        status=make_http_request(relay8_read).text.splitlines()
+    except:
+        print(relay8_read, " request failed")
+        return
     filtered=[line for line in status if ': ' in line]
-    print(filtered[0])
-
+    fields=filtered[0].split()
+    for i in range(1,8):
+        match="Relay%d"%i
+        relay=relays_8[match]
+        if relay['position']>=0:
+            if fields[i]!=relay['state']:
+                relay['state']="OFF" if fields[i] == '0' else 'ON'
+            relay['button'].config(fg='red' if relay['state'] == 'OFF' else 'green')
 
 def get_relay16_status():
     with open ("/tmp/relay16", "w") as f:
         for i in range(4):
-            f.write(make_http_request(relay16_read).text)
+            try:
+                f.write(make_http_request(relay16_read).text)
+            except:
+                print(relay16_read, " request failed")
 
     status16="cat /tmp/relay16 |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g'|\
     grep 'Relay...:'|\
@@ -282,13 +294,20 @@ def invert_last_bit_in_url(url):
 
 # Define internal functions to be executed for each cell
 def callback8(relayid, relais):
-    print("Function r8 was called!",relayid, relais['name'])
-    get_relay16_status()
+    request=relay8_read+"?relay=%d"%relays_8[relayid]['addr']
+    try:
+        make_http_request(request)
+    except:
+        print("R8 command request failed: ",request)
+    get_relay8_status()
 
 def callback16(relayid, relais):
     #print("Function r16 was called!",relayid, relais['name'])
     #print(relays_16[relayid]['url'])
-    make_http_request(relays_16[relayid]['url'])
+    try:
+        make_http_request(relays_16[relayid]['url'])
+    except:
+        print("R16 command request failed: ",relays_16[relayid]['url'])
     url=invert_last_bit_in_url(relays_16[relayid]['url'])
     #print(url)
     if relays_16[relayid]['type']=='TEMP':
@@ -298,6 +317,8 @@ def callback16(relayid, relais):
     get_relay16_status()
 
 def create_grid(items, rset):
+    font='Helvetica'
+    fontsize=10
     if rset==16:
         frame=grid_frame16
     else:
@@ -312,12 +333,15 @@ def create_grid(items, rset):
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2, 
                                fg='red' if relay['state']=="OFF" else 'green',
                                command=lambda rid=relayid, relais=relay: callback16(rid,relais),
-                                            font=('Helvetica', 12 ))
+                                            font=(font, fontsize))
             else:
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
-                               command=lambda rid=relayid, relais=relay: callback8(rid,relais))
+                               fg='red' if relay['state']=="OFF" else 'green',
+                               command=lambda rid=relayid, relais=relay: callback8(rid,relais),
+                                            font=(font, fontsize))
             row=relay['position']
-            relay['button'].grid(row=row, column=0, padx=5, pady=5)
+            #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+            relay['button'].grid(row=row, column=0)
 
             buttons.append(relay['button'])
 
@@ -344,8 +368,8 @@ if __name__ == "__main__":
     top_frame.pack()
 
     # Refresh button spanning 2 columns
-    refresh_button = tk.Button(top_frame, text="Refresh", command=read_status)
-    refresh_button.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+    #refresh_button = tk.Button(top_frame, text="Refresh", command=read_status)
+    #refresh_button.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
     # Frame to hold the grid of buttons
     #grid_frame = tk.Frame(root)
     #grid_frame.pack()
