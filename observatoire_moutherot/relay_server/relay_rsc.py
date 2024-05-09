@@ -23,7 +23,7 @@ class SSHClient:
         try:
             # Load SSH private key
             private_key = paramiko.RSAKey.from_private_key_file(self.private_key_file)
-            
+
             # Connect to SSH server using key-based authentication
             self.client.connect(self.host, self.port, self.username, pkey=private_key)
             print(f"Connected to {self.host}")
@@ -288,7 +288,7 @@ def get_relay16_status():
                     relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
 
                 relay['url']=fields[2]
-            
+
     else:
         print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
 
@@ -310,23 +310,23 @@ def make_http_request(url):
 def invert_last_bit_in_url(url):
     # Find the last segment of the URL that contains the hexadecimal value
     match = re.search(r'/([0-9a-fA-F]{2})$', url)
-    
+
     if match:
         # Extract the hexadecimal value from the URL
         hex_value = match.group(1)
-        
+
         # Convert the hexadecimal value to an integer
         decimal_value = int(hex_value, 16)
-        
+
         # Flip the least significant bit (LSB)
         inverted_value = decimal_value ^ 0x01
-        
+
         # Convert the inverted value back to a hexadecimal string
         inverted_hex = format(inverted_value, '02x')  # Format as a 2-character hexadecimal string
-        
+
         # Replace the original hexadecimal value with the inverted value in the URL
         modified_url = url[:match.start(1)] + inverted_hex + url[match.end(1):]
-        
+
         return modified_url
     else:
         # If no match is found (e.g., no hexadecimal value in the URL), return the original URL

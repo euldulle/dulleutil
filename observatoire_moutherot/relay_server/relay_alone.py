@@ -53,7 +53,7 @@ def get_cmd_status():
         com['status']=cov
         com['button'].config(fg='red' if com['status'] == 'CLOSED' else 'green',
                              text=com['name'][com['status']],
-                             command=lambda relais=com, cmd=com['cmd'][com['status']]: 
+                             command=lambda relais=com, cmd=com['cmd'][com['status']]:
                              remote_cmd(relais, cmd),
                              state=tk.DISABLED if other == 1 else tk.NORMAL,
                              font=(font, fontsize))
@@ -88,7 +88,7 @@ def create_grid(items, rset):
 
             # Create button and bind the corresponding function
             if rset==16:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2, 
+                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
                                fg='red' if relay['status']=="OFF" else 'green',
                                command=lambda relais=relay: callback16(relais),
                                             font=(font, fontsize))
@@ -100,7 +100,7 @@ def create_grid(items, rset):
             if rset==0:
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
                                fg='red' if relay['status']!=0 else 'green',
-                               command=lambda cmd=relay['cmd'][relay['status']], 
+                               command=lambda cmd=relay['cmd'][relay['status']],
                                             relais=relay: remote_cmd(relais, cmd),
                                             font=(font, fontsize))
 
@@ -142,10 +142,10 @@ if __name__ == "__main__":
 
     # Grids for the switch :
     title_r16 = tk.Label(grid_frame16, text="Relay 16", font=("Helvetica", 16, "bold"))
-    title_r16.grid(row=0) 
+    title_r16.grid(row=0)
 
     title_r8 = tk.Label(grid_frame16, text="Relay 8", font=("Helvetica", 16, "bold"))
-    title_r8.grid(row=17) 
+    title_r8.grid(row=17)
 
     create_grid(relays_16.items(),16)
     create_grid(relays_8.items(),8)
