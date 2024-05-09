@@ -42,9 +42,25 @@ export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
 export OLM_O2SHARE="$OLM_ROOT/o2oid"
 export OLM_BATSTATUS=$OLM_O2SHARE/capstatus.txt
 
-# this is for non indi wheels:
-export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
-export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
+#
+# fonction utilisee pour verifier que la machine sur laquelle s'execute
+# un script est bien celle attendue. A utiliser dans un script, par exemple :
+#
+#   need_host pluton
+#
+# le script ne continue que si la machine est bien pluton
+need_host () {
+    HOSTNAME=$(hostname -s)
+    for i in $*; do
+        if test "$HOSTNAME" = "$i"; then
+            return 0;
+        fi
+    done
+    echo " Erreur need host $* (host reel $HOSTNAME)"
+    return 1
+    
+    }
+#
 
 r8=("LIGHT Light"\
     "PIL Pilier"\
@@ -741,6 +757,7 @@ export cov2=174
 export pinlist="$bat1 $bat2 $cov1 $cov2"
 
 glist (){
+    need_host "odroid" || return
     for pin in $pinlist; do
         echo -n "  $pin : "
         cat $fsbase/gpio$pin/value
@@ -748,24 +765,29 @@ glist (){
 }
 
 gstatus(){
+    need_host "odroid" || return
     gtest bat > $OLM_BATSTATUS
     gtest cov >>$OLM_BATSTATUS
 }
 
 ack(){
+    need_host "odroid" || return
     gack cov
     gack bat
     }
 
 ackcov(){
+    need_host "odroid" || return
     gack cov
 }
 
 ackbat(){
+    need_host "odroid" || return
     gack bat
 }
 
 gack(){
+    need_host "odroid" || return
     p1=$(eval echo \$${1}1)
     p2=$(eval echo \$${1}2)
     gclr $p1
@@ -774,6 +796,7 @@ gack(){
 }
 
 gtest(){
+    need_host "odroid" || return
     if test -z "$1"; then
         gstatus
         return
@@ -797,22 +820,26 @@ gtest(){
 }
 
 gclr (){
+    need_host "odroid" || return
     pin=$fsbase/gpio$1
     echo 0 |sudo tee $pin/value >/dev/null
 }
 
 gset (){
+    need_host "odroid" || return
     pin=$fsbase/gpio$1
     echo 1 |sudo tee $pin/value >/dev/null
     glist
 }
 
 gstop(){
+    need_host "odroid" || return
     stopcov
     stopbat
 }
 
 closecov(){
+    need_host "odroid" || return
     gtest bat
     if test "$?" = "0"; then
         gclr $cov1 >/dev/null 2>&1
@@ -825,6 +852,7 @@ closecov(){
 }
 
 stopcov(){
+    need_host "odroid" || return
     killall sleep
     sleep .5
     gset $cov1 >/dev/null 2>&1
@@ -833,6 +861,7 @@ stopcov(){
 }
 
 opencov(){
+    need_host "odroid" || return
     if test "$?" = 0; then
         gset $cov1 >/dev/null 2>&1
         gclr $cov2 >/dev/null 2>&1
@@ -843,6 +872,7 @@ opencov(){
 }
 
 closebat(){
+    need_host "odroid" || return
     gtest cov
     if test "$?" = 0; then
         gclr $bat1 >/dev/null 2>&1
@@ -855,6 +885,7 @@ closebat(){
 }
 
 stopbat(){
+    need_host "odroid" || return
     killall sleep
     sleep .5
     gset $bat1 >/dev/null 2>&1
@@ -863,6 +894,7 @@ stopbat(){
 }
 
 openbat(){
+    need_host "odroid" || return
     gtest cov
     if test "$?" = 0; then
         gset $bat1 >/dev/null 2>&1
@@ -877,20 +909,28 @@ openbat(){
 export gset gclr glist oppenbat opencov clrcov
 
 covinit(){
-for i in $pinlist; do
-    pin=$fsbase/gpio"$i"
-    if ! test -d $pin; then
-        echo $i |sudo tee -a $fsbase/export
-        echo out |sudo tee -a $pin/direction
-        echo $pin ready
-    else
-        echo $pin already ready
-    fi
-done
+    need_host "odroid" || return
+    for i in $pinlist; do
+        pin=$fsbase/gpio"$i"
+        if ! test -d $pin; then
+            echo $i |sudo tee -a $fsbase/export
+            echo out |sudo tee -a $pin/direction
+            echo $pin ready
+        else
+            echo $pin already ready
+        fi
+    done
 }
 
-if ! test -d $fsbase/gpio"$bat1"; then
-    covinit
+# this is for non indi wheels:
+if test "$HOSTNAME" = "odroid"; then
+    export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
+    export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
+fi
+if test "$HOSTNAME" = "odroid"; then
+    if ! test -d $fsbase/gpio"$bat1"; then
+        covinit
+    fi
 fi
 
 if test -n "$1"; then
