@@ -41,6 +41,7 @@ export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
 export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
 export OLM_O2SHARE="$OLM_ROOT/o2oid"
 export OLM_BATSTATUS=$OLM_O2SHARE/capstatus.txt
+export OLM_SEM_ACK_COV=$OLM_IROOT/ackcov
 
 #
 # fonction utilisee pour verifier que la machine sur laquelle s'execute
@@ -774,6 +775,7 @@ ack(){
     need_host "odroid" || return
     gack cov
     gack bat
+    touch $OLM_SEM_ACK_COV
     }
 
 ackcov(){
@@ -836,19 +838,26 @@ gstop(){
     need_host "odroid" || return
     stopcov
     stopbat
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 closecov(){
     need_host "odroid" || return
     gtest bat
     if test "$?" = "0"; then
-        gclr $cov1 >/dev/null 2>&1
-        gset $cov2 >/dev/null 2>&1
-        nohup sleep $traveltime  >/dev/null 2>&1 && gset $cov1 && gstatus >/dev/null & >/dev/null 2>&1
+        gtest cov
+        if test "$?" = 0 || test -f "$OLM_SEM_ACK_COV"; then
+            gclr $cov1 >/dev/null 2>&1
+            gset $cov2 >/dev/null 2>&1
+            nohup sleep $traveltime  >/dev/null 2>&1 && gset $cov1 && gstatus >/dev/null & >/dev/null 2>&1
+        else
+            echo "cov already closed"
+        fi
     else
         echo "bat not safe, not closing cov"
     fi
     gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 stopcov(){
@@ -858,30 +867,44 @@ stopcov(){
     gset $cov1 >/dev/null 2>&1
     gset $cov2 >/dev/null 2>&1
     gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 opencov(){
     need_host "odroid" || return
+    gtest bat
     if test "$?" = 0; then
-        gset $cov1 >/dev/null 2>&1
-        gclr $cov2 >/dev/null 2>&1
-        nohup sleep $traveltime >/dev/null 2>&1  && gclr $cov1 && gstatus >/dev/null & >/dev/null 2>&1
+        gtest cov
+        if test "$?" = 1 || test -f "$OLM_SEM_ACK_COV"; then
+            gset $cov1 >/dev/null 2>&1
+            gclr $cov2 >/dev/null 2>&1
+            nohup sleep $traveltime >/dev/null 2>&1  && gclr $cov1 && gstatus >/dev/null & >/dev/null 2>&1
+        else
+            echo "cov already open"
+        fi
     else
         echo "bat not safe, not opening cov"
     fi
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 closebat(){
     need_host "odroid" || return
     gtest cov
     if test "$?" = 0; then
-        gclr $bat1 >/dev/null 2>&1
-        gset $bat2 >/dev/null 2>&1
-        nohup sleep $traveltime >/dev/null 2>&1 && gset $bat1 && gstatus >/dev/null & >/dev/null 2>&1
+        gtest bat
+        if test "$?" = 0 || test -f $OLM_SEM_ACK_COV; then
+            gclr $bat1 >/dev/null 2>&1
+            gset $bat2 >/dev/null 2>&1
+            nohup sleep $traveltime >/dev/null 2>&1 && gset $bat1 && gstatus >/dev/null & >/dev/null 2>&1
+        else
+            echo "bat already closed"
+        fi
     else
         echo "cov not safe, not closing bat"
     fi
     gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 stopbat(){
@@ -891,19 +914,26 @@ stopbat(){
     gset $bat1 >/dev/null 2>&1
     gset $bat2 >/dev/null 2>&1
     gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 openbat(){
     need_host "odroid" || return
     gtest cov
     if test "$?" = 0; then
-        gset $bat1 >/dev/null 2>&1
-        gclr $bat2  >/dev/null 2>&1
-        nohup sleep $traveltime >/dev/null 2>&1 && gclr $bat1 && gstatus >/dev/null & >/dev/null 2>&1
+        gtest bat
+        if test "$?" = 1 || test -f "$OLM_SEM_ACK_COV"; then
+            gset $bat1 >/dev/null 2>&1
+            gclr $bat2  >/dev/null 2>&1
+            nohup sleep $traveltime >/dev/null 2>&1 && gclr $bat1 && gstatus >/dev/null & >/dev/null 2>&1
+        else
+            echo "bat already open"
+        fi
     else
         echo "cov not safe, not opening bat"
     fi
     gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 export gset gclr glist oppenbat opencov clrcov
