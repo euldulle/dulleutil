@@ -6,186 +6,8 @@ import subprocess
 import re
 import asyncio
 from time import sleep
-
-network="192.168.1"
-r16ip=network+".28"
-r16=r16ip+"/30"
-relay16_read="http://"+r16+"/43"
-
-r8ip=network+".23"
-relay8_read="http://fmeyer:4so4xRg9@"+r8ip+"/relays.cgi"
-
-buttons=[]
-grid_frame16 = []
-grid_frame8 = []
-
-relays_16 = {
-    'Relay-12': {
-        'name': 'USB HUB',
-        'url': "",
-        'type': "SWITCH",
-        'position': 0,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-13': {
-        'name': 'EQ8',
-        'url': "",
-        'type': "SWITCH",
-        'position': 1,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-10': {
-        'name': 'Oid',
-        'url': "",
-        'type': "SWITCH",
-        'position': 2,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-09': {
-        'name': 'Dew Heater',
-        'url': "",
-        'type': "SWITCH",
-        'position': 3,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-11': {
-        'name': 'CCD',
-        'url': "",
-        'type': "SWITCH",
-        'position': 4,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-01': {
-        'name': 'FW Stepper',
-        'position': 5,
-        'type': "SWITCH",
-        'url': "",
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-02': {
-        'name': 'C14 Stepper',
-        'url': "",
-        'type': "SWITCH",
-        'position': 6,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-03': {
-        'name': 'TS Stepper',
-        'url': "",
-        'type': "SWITCH",
-        'position': 7,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-14': {
-        'name': 'Close Roof',
-        'url': "",
-        'type': "TEMP",
-        'position': 8,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-15': {
-        'name': 'Stop Roof',
-        'url': "",
-        'type': "TEMP",
-        'position': 9,
-        'button': [],
-        'state': "OFF"
-        },
-
-    'Relay-16': {
-        'name': 'Open Roof',
-        'url': "",
-        'type': "TEMP",
-        'position': 10,
-        'button': [],
-        'state': "OFF"
-        }
-    }
-
-relays_8 = {
-    'Relay1': {
-        'name': 'light',
-        'position': 0,
-        'button': [],
-        'addr': 1,
-        'state': "OFF"
-        },
-
-    'Relay2': {
-        'name': 'pilier',
-        'position': 1,
-        'button': [],
-        'addr': 2,
-        'state': "OFF"
-        },
-
-    'Relay3': {
-        'name': 'camera',
-        'position': 2,
-        'button': [],
-        'addr': 3,
-        'state': "OFF"
-        },
-
-    'Relay4': {
-        'name': 'Prises N',
-        'position': 3,
-        'button': [],
-        'addr': 4,
-        'state': "OFF"
-        },
-
-    'Relay5': {
-        'name': 'Prises S (Toit)',
-        'position': 4,
-        'button': [],
-        'addr': 5,
-        'state': "OFF"
-        },
-
-    'Relay6': {
-        'name': 'Relay16',
-        'position': 5,
-        'button': [],
-        'addr': 6,
-        'state': "OFF"
-        },
-
-    'Relay7': {
-        'name': 'CCD',
-        'position': -1,
-        'button': [],
-        'addr': 7,
-        'state': "OFF"
-        },
-
-    'Relay8': {
-        'name': 'CCD',
-        'position': -1,
-        'button': [],
-        'addr': 8,
-        'state': "OFF"
-        }
-    }
-
+import paramiko
+from  relay_rsc import *
 
 # Function to quit the application
 def quit_application():
@@ -194,152 +16,95 @@ def quit_application():
 def read_status():
     get_relay8_status()
     get_relay16_status()
+    get_cmd_status()
     root.after(5000, read_status)
-
-def get_relay8_status():
-    try:
-        status=make_http_request(relay8_read).text.splitlines()
-    except:
-        print(relay8_read, " request failed")
-        return
-    filtered=[line for line in status if ': ' in line]
-    fields=filtered[0].split()
-    for i in range(1,8):
-        match="Relay%d"%i
-        relay=relays_8[match]
-        if relay['position']>=0:
-            if fields[i]!=relay['state']:
-                relay['state']="OFF" if fields[i] == '0' else 'ON'
-            relay['button'].config(fg='red' if relay['state'] == 'OFF' else 'green')
-
-def get_relay16_status():
-    with open ("/tmp/relay16", "w") as f:
-        for i in range(4):
-            try:
-                f.write(make_http_request(relay16_read).text)
-            except:
-                print(relay16_read, " request failed")
-
-    status16="cat /tmp/relay16 |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g'|\
-    grep 'Relay...:'|\
-    sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@\"@@g'|\
-    awk '{print $2 \" \" $5 \" \" $7}'"
-    status16="cat /tmp/relay16 |sed 's/<p>R/<p>\ R/g;s/<p> R/\\n<p> R/g;s@&nbsp@@g'|grep 'Relay...:'|"
-    status16+="sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@\"@@g;s@: @ @'|"
-    status16+="awk '{print $2 \" \" $5 \" \" $7}'"
-
-    # Execute the command
-    process = subprocess.Popen(status16, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
-    # Wait for the process to complete and capture output
-    stdout, stderr = process.communicate()
-
-    # Check the return code
-    return_code = process.returncode
-    if return_code == 0:
-        for line in stdout.splitlines():
-            fields=line.split()
-            if fields[0] in relays_16:
-                relay=relays_16[fields[0]];
-                if fields[1]!=relay['state']:
-                    relay['state']=fields[1]
-                    #relay['indicator'].config(text=relay['state'], fg='red' if relay['state'] == 'OFF' else 'green')
-                    relay['button'].config(fg='red' if relay['state'] == 'OFF' else 'green')
-
-                relay['url']=fields[2]
-            
-    else:
-        print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
-
-def make_http_request(url):
-    try:
-        # Send GET request to the specified URL
-        response = requests.get(url)
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            # Process the response data (in this example, just print it)
-            return response
-        else:
-            print(f"HTTP Request Failed with status code: {response.status_code}")
-
-    except requests.exceptions.RequestException as e:
-        # Handle exceptions (e.g., connection error, timeout)
-        print(f"HTTP Request Error: {e}")
-
-def invert_last_bit_in_url(url):
-    # Find the last segment of the URL that contains the hexadecimal value
-    match = re.search(r'/([0-9a-fA-F]{2})$', url)
-    
-    if match:
-        # Extract the hexadecimal value from the URL
-        hex_value = match.group(1)
-        
-        # Convert the hexadecimal value to an integer
-        decimal_value = int(hex_value, 16)
-        
-        # Flip the least significant bit (LSB)
-        inverted_value = decimal_value ^ 0x01
-        
-        # Convert the inverted value back to a hexadecimal string
-        inverted_hex = format(inverted_value, '02x')  # Format as a 2-character hexadecimal string
-        
-        # Replace the original hexadecimal value with the inverted value in the URL
-        modified_url = url[:match.start(1)] + inverted_hex + url[match.end(1):]
-        
-        return modified_url
-    else:
-        # If no match is found (e.g., no hexadecimal value in the URL), return the original URL
-        return url
 
 
 # Define internal functions to be executed for each cell
-def callback8(relayid, relais):
-    request=relay8_read+"?relay=%d"%relays_8[relayid]['addr']
+def callback8( relais):
+    request=relay8_read+"?relay=%d"%relaiss['addr']
     try:
         make_http_request(request)
     except:
         print("R8 command request failed: ",request)
     get_relay8_status()
 
-def callback16(relayid, relais):
-    #print("Function r16 was called!",relayid, relais['name'])
-    #print(relays_16[relayid]['url'])
+def callback16(relais):
     try:
-        make_http_request(relays_16[relayid]['url'])
+        make_http_request(relais['url'])
     except:
-        print("R16 command request failed: ",relays_16[relayid]['url'])
-    url=invert_last_bit_in_url(relays_16[relayid]['url'])
+        print("R16 command request failed: ",relais['url'])
+    url=invert_last_bit_in_url(relais['url'])
     #print(url)
-    if relays_16[relayid]['type']=='TEMP':
+    if relais['type']=='TEMP':
         sleep(.1)
         make_http_request(url)
 
     get_relay16_status()
 
+def get_cmd_status():
+    font='Helvetica'
+    fontsize=10
+    covstatus=ssh_client.send_command("gstatus").strip().split()
+
+    cov=int(covstatus[0])
+    other=int(covstatus[1])
+    for com in cmds['movecover'],cmds['movebath']:
+        com['status']=cov
+        com['button'].config(fg='red' if com['status'] == 'CLOSED' else 'green',
+                             text=com['name'][com['status']],
+                             command=lambda relais=com, cmd=com['cmd'][com['status']]: 
+                             remote_cmd(relais, cmd),
+                             state=tk.DISABLED if other == 1 else tk.NORMAL,
+                             font=(font, fontsize))
+        cov=int(covstatus[1])
+        other=int(covstatus[0])
+
+def remote_cmd(relais, cmd):
+    print("sending "+ cmd)
+    ssh_client.send_command(cmd)
+    print("sent "+ cmd)
+    get_cmd_status()
+
 def create_grid(items, rset):
     font='Helvetica'
     fontsize=10
+
     if rset==16:
         frame=grid_frame16
-    else:
-        frame=grid_frame8
+        incpos=1 # that's 1 for the title
+
+    if rset==8:
+        frame=grid_frame16
+        incpos=18 # that's 2 for the titles, 16 for the relay16
+
+    if rset==0:
+        frame=grid_cmd
+        incpos=1 # that's 1 for the title
 
     for relayid,relay in items:
         if relay['position']>=0:
-            button_text = relay['name']
+            button_text = relay['name'][0]
 
             # Create button and bind the corresponding function
             if rset==16:
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2, 
-                               fg='red' if relay['state']=="OFF" else 'green',
-                               command=lambda rid=relayid, relais=relay: callback16(rid,relais),
+                               fg='red' if relay['status']=="OFF" else 'green',
+                               command=lambda relais=relay: callback16(relais),
                                             font=(font, fontsize))
-            else:
+            if rset==8:
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
-                               fg='red' if relay['state']=="OFF" else 'green',
-                               command=lambda rid=relayid, relais=relay: callback8(rid,relais),
+                               fg='red' if relay['status']=="OFF" else 'green',
+                               command=lambda relais=relay: callback8(relais),
                                             font=(font, fontsize))
-            row=relay['position']
+            if rset==0:
+                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
+                               fg='red' if relay['status']!=0 else 'green',
+                               command=lambda cmd=relay['cmd'][relay['status']], 
+                                            relais=relay: remote_cmd(relais, cmd),
+                                            font=(font, fontsize))
+
+            row=relay['position']+incpos
             #relay['button'].grid(row=row, column=0, padx=1, pady=1)
             relay['button'].grid(row=row, column=0)
 
@@ -353,15 +118,16 @@ if __name__ == "__main__":
     # Start the GUI main loop
     # Create the GUI
     root = tk.Tk()
-    root.title("Clickable Grid")
+    root.title("Obs Moutherot control")
 
     # Frame to hold the grid of relay indicators for series 1
     grid_frame16 = tk.Frame(root)
-    grid_frame16.pack(side=tk.LEFT, padx=10, pady=10)
+    grid_frame16.pack(side=tk.LEFT)
 
-    # Frame to hold the grid of relay indicators for series 2
-    grid_frame8 = tk.Frame(root)
-    grid_frame8.pack(side=tk.RIGHT, padx=10, pady=10)
+    # Frame to hold the grid of commands
+    grid_cmd = tk.Frame(root)
+    #grid_frame8.pack(side=tk.RIGHT, padx=10, pady=10)
+    grid_cmd.pack(side=tk.RIGHT)
 
     # Frame to hold the refresh button and grid
     top_frame = tk.Frame(root)
@@ -374,12 +140,23 @@ if __name__ == "__main__":
     #grid_frame = tk.Frame(root)
     #grid_frame.pack()
 
-    # Initial creation of the grid
+    # Grids for the switch :
+    title_r16 = tk.Label(grid_frame16, text="Relay 16", font=("Helvetica", 16, "bold"))
+    title_r16.grid(row=0) 
+
+    title_r8 = tk.Label(grid_frame16, text="Relay 8", font=("Helvetica", 16, "bold"))
+    title_r8.grid(row=17) 
+
     create_grid(relays_16.items(),16)
     create_grid(relays_8.items(),8)
-    # Quit button
-    quit_button = tk.Button(root, text="Quit", command=quit_application)
-    quit_button.pack(side=tk.BOTTOM, padx=10, pady=10)
-    read_status()
+    create_grid(cmds.items(),0)
 
+    # Quit button
+    quit_button = tk.Button(grid_cmd, text="Quit", command=quit_application)
+    quit_button.grid(row=8, column=0)
+
+    # Initialize SSH client with SSH key authentication
+    ssh_key_file = '/home/fmeyer/.ssh/obsm'
+    ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
+    read_status()
     root.mainloop()
