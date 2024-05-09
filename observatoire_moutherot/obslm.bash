@@ -769,6 +769,7 @@ gstatus(){
     need_host "odroid" || return
     gtest bat > $OLM_BATSTATUS
     gtest cov >>$OLM_BATSTATUS
+    cat $OLM_BATSTATUS
 }
 
 ack(){
