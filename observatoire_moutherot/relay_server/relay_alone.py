@@ -230,7 +230,7 @@ def get_cmd_status():
     except:
         cov=0
         bat=0
-    
+
     other=bat
     for com in cmds['movecover'],cmds['movebath']:
         com['status']=cov
@@ -246,9 +246,9 @@ def get_cmd_status():
 def remote_cmd(relais, cmd):
     if relais['confirm']:
         if not confirm_action(relais['name'][relais['status']]+' ?'):
-            add_log(relais['name'][relais['status']]+" cancelled") 
+            add_log(relais['name'][relais['status']]+" cancelled")
             return False
-        print("confirmed") 
+        print("confirmed")
 
     ssh_client.send_command(cmd)
     add_log("sent "+ cmd)
