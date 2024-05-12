@@ -38,13 +38,13 @@ class SSHClient:
             add_log(f"ssh connect %s failed"%self.host)
 
     def send_command(self, command):
-        try:
-            if self.transport.is_active():
+        if self.transport.is_active():
+            try:
                 stdin, stdout, stderr = self.client.exec_command(command)
                 return stdout.read().decode('utf-8')
-        except:
-            add_log("ssh send_cmd %s failed "%self.host)
-            return "failed"
+            except:
+                add_log("ssh send_cmd %s failed "%self.host)
+                return "failed"
 
     def close(self):
         if self.client:
@@ -299,13 +299,13 @@ def create_grid(items, rset):
             buttons.append(relay['button'])
 
 def add_log(message):
-    global error_text
+    global log_text
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp in desired format
     formatted_message = f"{timestamp} {message}"  # Concatenate timestamp with message
-    error_text.config(state=tk.NORMAL)  # Allow modifications to the Text widget
-    error_text.insert(1.0, formatted_message + '\n')  # Insert message at the beginning (top) of the Text widget
-    error_text.config(state=tk.DISABLED)  # Prevent further modifications to preserve read-only state
+    log_text.config(state=tk.NORMAL)  # Allow modifications to the Text widget
+    log_text.insert(1.0, formatted_message + '\n')  # Insert message at the beginning (top) of the Text widget
+    log_text.config(state=tk.DISABLED)  # Prevent further modifications to preserve read-only state
 
 #url = "https://jsonplaceholder.typicode.com/posts/1"  # Example URL (replace with your URL)
 #make_http_request(url)
@@ -318,12 +318,12 @@ root.title("Obs Moutherot control")
 # Create three frames for the first row (three vertical frames)
 grid_frame16 = tk.Frame(root, width=200, height=100, bg="lightblue")
 grid_cmd = tk.Frame(root, width=200, height=100, bg="lightgreen")
-grid_other = tk.Frame(root, width=200, height=100, bg="lightcoral")
+#grid_other = tk.Frame(root, width=200, height=100, bg="lightcoral")
 
 # Layout frames in the first row using grid
 grid_frame16.grid(row=0, column=0, padx=10, pady=10)
 grid_cmd.grid(row=0, column=1, padx=10, pady=10)
-grid_other.grid(row=0, column=2, padx=10, pady=10)
+#grid_other.grid(row=0, column=2, padx=10, pady=10)
 
 # Create a frame for the second row (single frame spanning full width)
 bottom = tk.Frame(root, width=600, height=150, bg="lightyellow")
@@ -340,9 +340,9 @@ root.grid_columnconfigure(2, weight=1)  # Allow column 2 to expand horizontally
 
 
 # Create a scrolled Text widget for displaying error messages
-error_text = scrolledtext.ScrolledText(bottom, width=120, height=10, wrap=tk.WORD)
-error_text.pack(padx=10, pady=10)
-error_text.config(state=tk.DISABLED)
+log_text = scrolledtext.ScrolledText(bottom, width=120, height=10, wrap=tk.WORD)
+log_text.pack(padx=10, pady=10)
+log_text.config(state=tk.DISABLED)
 
 # Refresh button spanning 2 columns
 #refresh_button = tk.Button(top_frame, text="Refresh", command=read_status)
@@ -361,7 +361,7 @@ title_r8.grid(row=17)
 create_grid(relays_16.items(),16)
 create_grid(relays_8.items(),8)
 create_grid(cmds.items(),0)
-clock = tk.Label(grid_other, height=1, width=10, font=("Helvetica", 18))
+clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
 clock.config(anchor="center")
 clock.grid(row=0, column=0)
 #clock.pack(pady=20)
