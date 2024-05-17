@@ -263,4 +263,23 @@ cmds = {
         'status': 0,
         'confirm': True
         },
+
+    'Shutdown oid': {
+        'name': ['Shutdown oid'],
+        'position': 9,
+        'button': [],
+        'cmd': ['olm_shutdown_indihost'],
+        'status': 0,
+        'confirm': True
+        },
+
+
+    'Full shutdown': {
+        'name': ['Full Shutdown'],
+        'position': 10,
+        'button': [],
+        'cmd': ['olm_session_shutdown'],
+        'status': 0,
+        'confirm': True
+        },
     }

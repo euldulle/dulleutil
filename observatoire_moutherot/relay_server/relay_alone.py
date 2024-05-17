@@ -38,7 +38,7 @@ class SSHClient:
             add_log(f"ssh connect %s failed"%self.host)
 
     def send_command(self, command):
-        if self.transport.is_active():
+        if self.transport and self.transport.is_active():
             try:
                 stdin, stdout, stderr = self.client.exec_command(command)
                 return stdout.read().decode('utf-8')
@@ -223,25 +223,23 @@ def callback16(relais):
 def get_cmd_status():
     font='Helvetica'
     fontsize=10
-    covstatus=ssh_client.send_command("gstatus").strip().split()
-    try:
-        cov=int(covstatus[0])
-        bat=int(covstatus[1])
-    except:
-        cov=0
-        bat=0
+    covstatus=ssh_client.send_command("gstatus")
+    if covstatus:
+        status=covstatus.strip().split()
+        cov=int(status[0])
+        bat=int(status[1])
 
-    other=bat
-    for com in cmds['movecover'],cmds['movebath']:
-        com['status']=cov
-        com['button'].config(fg='red' if com['status'] == 'CLOSED' else 'green',
-                             text=com['name'][com['status']],
-                             command=lambda relais=com, cmd=com['cmd'][com['status']]:
-                             remote_cmd(relais, cmd),
-                             state=tk.DISABLED if other == 1 else tk.NORMAL,
-                             font=(font, fontsize))
-        other=cov
-        cov=bat
+        other=bat # tricky trickster
+        for com in cmds['movecover'],cmds['movebath']:
+            com['status']=cov
+            com['button'].config(fg='red' if com['status'] == 'CLOSED' else 'green',
+                                 text=com['name'][com['status']],
+                                 command=lambda relais=com, cmd=com['cmd'][com['status']]:
+                                 remote_cmd(relais, cmd),
+                                 state=tk.DISABLED if other == 1 else tk.NORMAL,
+                                 font=(font, fontsize))
+            other=cov
+            cov=bat
 
 def remote_cmd(relais, cmd):
     if relais['confirm']:
