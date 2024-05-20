@@ -430,7 +430,7 @@ olm_shutdown_indihost(){
 
 olm_session_shutdown(){
     olm_log "    ${FUNCNAME[0]} : starting full shutdown"
-    olm_shutdown_indihost
+    (olm_shutdown_indihost)&disown
     sleep 5
     olm_off_r16_full
     olm_off_r8_full
