@@ -187,6 +187,7 @@ cmds = {
         'button': [],
         'cmd': ["olm_in_sync_eq8_time"],
         'status': -1,
+        'remote': True,
         'confirm': False
         },
 
@@ -197,6 +198,7 @@ cmds = {
         'cmd': ['closecov','opencov'],
         'status': 0,
         'states': ["OPENED", "CLOSED"],
+        'remote': True,
         'confirm': False
         },
 
@@ -207,6 +209,7 @@ cmds = {
         'cmd': ['closebat','openbat'],
         'status': 0,
         'statesname': ["OPENED", "CLOSED"],
+        'remote': True,
         'confirm': False
         },
 
@@ -216,6 +219,7 @@ cmds = {
         'button': [],
         'cmd': ['olm_in_cycle qhy'],
         'status': 0,
+        'remote': True,
         'confirm': True
         },
 
@@ -225,7 +229,8 @@ cmds = {
         'button': [],
         'cmd': ['olm_in_cycle eq8'],
         'status': 0,
-        'confirm': False
+        'remote': True,
+        'confirm': True
         },
 
     'cycle ccd': {
@@ -234,7 +239,8 @@ cmds = {
         'button': [],
         'cmd': ['olm_in_cycle p1'],
         'status': 0,
-        'confirm': False
+        'remote': True,
+        'confirm': True
         },
 
     'cycle fw': {
@@ -243,7 +249,8 @@ cmds = {
         'button': [],
         'cmd': ['olm_in_cycle fw'],
         'status': 0,
-        'confirm': False
+        'remote': True,
+        'confirm': True
         },
 
     'cycle indi': {
@@ -252,7 +259,8 @@ cmds = {
         'button': [],
         'cmd': ['olm_in_cycle indiserver'],
         'status': 0,
-        'confirm': False
+        'remote': True,
+        'confirm': True
         },
 
     'Reboot oid': {
@@ -261,6 +269,7 @@ cmds = {
         'button': [],
         'cmd': ['sudo reboot'],
         'status': 0,
+        'remote': True,
         'confirm': True
         },
 
@@ -270,6 +279,7 @@ cmds = {
         'button': [],
         'cmd': ['olm_shutdown_indihost'],
         'status': 0,
+        'remote': True,
         'confirm': True
         },
 
@@ -280,6 +290,19 @@ cmds = {
         'button': [],
         'cmd': ['olm_session_shutdown'],
         'status': 0,
+        'remote': False,
+        'confirm': True
+        },
+    }
+
+cmds2 = {
+    'reinit EQ8 park West': {
+        'name': ['reInit Park Info'],
+        'position': 1,
+        'button': [],
+        'cmd': ['olm_in_eq8_reinitpark west'],
+        'status': -1,
+        'remote': True,
         'confirm': True
         },
     }
