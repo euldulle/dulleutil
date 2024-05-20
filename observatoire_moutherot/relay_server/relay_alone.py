@@ -72,7 +72,7 @@ def get_relay8_status():
     try:
         status=make_http_request(relay8_read).text.splitlines()
     except:
-        add_log(" %s request failed"%relay8_read)
+        add_log(" Relay8 request failed (%s)"%relay8_read)
         return
     filtered=[line for line in status if ': ' in line]
     fields=filtered[0].split()
@@ -86,11 +86,12 @@ def get_relay8_status():
 
 def get_relay16_status():
     with open ("/tmp/relay16", "w") as f:
-        for i in range(4):
-            try:
+        try:
+            for i in range(4):
                 f.write(make_http_request(relay16_read).text)
-            except:
-                add_log(" %s request failed"%relay16_read)
+        except:
+            add_log("Relay16 request failed (%s)"%relay16_read)
+            return
 
     status16="cat /tmp/relay16 |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g'|\
     grep 'Relay...:'|\
@@ -135,7 +136,7 @@ def make_http_request(url):
 
     except requests.exceptions.RequestException as e:
         # Handle exceptions (e.g., connection error, timeout)
-        add_log(f"HTTP Request Error: {e}")
+        print(f"HTTP Request Error")
 
 def invert_last_bit_in_url(url):
     # Find the last segment of the URL that contains the hexadecimal value
@@ -248,9 +249,14 @@ def remote_cmd(relais, cmd):
             return False
         print("confirmed")
 
-    ssh_client.send_command(cmd)
-    add_log("sent "+ cmd)
-    get_cmd_status()
+    if relais['remote']:
+        ssh_client.send_command(cmd)
+        add_log("sent "+ cmd)
+        get_cmd_status()
+    else:
+        syscom="/home/fmeyer/git/dulleutil/observatoire_moutherot/obslm.bash "+cmd
+        process = subprocess.Popen(syscom, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        add_log("execd "+syscom)
 
 def create_grid(items, rset):
     font='Helvetica'
@@ -268,6 +274,10 @@ def create_grid(items, rset):
         frame=grid_cmd
         incpos=1 # that's 1 for the title
 
+    if rset==1:
+        frame=grid_cmd2
+        incpos=1 # that's 1 for the title
+
     for relayid,relay in items:
         if relay['position']>=0:
             button_text = relay['name'][0]
@@ -283,7 +293,7 @@ def create_grid(items, rset):
                                fg='red' if relay['status']=="OFF" else 'green',
                                command=lambda relais=relay: callback8(relais),
                                             font=(font, fontsize))
-            if rset==0:
+            if rset==0 or rset==1:
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
                                fg='red' if relay['status']!=0 else 'green',
                                command=lambda cmd=relay['cmd'][relay['status']],
@@ -316,12 +326,12 @@ root.title("Obs Moutherot control")
 # Create three frames for the first row (three vertical frames)
 grid_frame16 = tk.Frame(root, width=200, height=100, bg="lightblue")
 grid_cmd = tk.Frame(root, width=200, height=100, bg="lightgreen")
-#grid_other = tk.Frame(root, width=200, height=100, bg="lightcoral")
+grid_cmd2 = tk.Frame(root, width=200, height=100, bg="lightcoral")
 
 # Layout frames in the first row using grid
 grid_frame16.grid(row=0, column=0, padx=10, pady=10)
 grid_cmd.grid(row=0, column=1, padx=10, pady=10)
-#grid_other.grid(row=0, column=2, padx=10, pady=10)
+grid_cmd2.grid(row=0, column=2, padx=10, pady=10)
 
 # Create a frame for the second row (single frame spanning full width)
 bottom = tk.Frame(root, width=600, height=150, bg="lightyellow")
@@ -356,9 +366,16 @@ title_r16.grid(row=0)
 title_r8 = tk.Label(grid_frame16, text="Relay 8", font=("Helvetica", 16, "bold"))
 title_r8.grid(row=17)
 
+title_cmd = tk.Label(grid_cmd, text="Command Set #1", font=("Helvetica", 16, "bold"))
+title_cmd.grid(row=1)
+
+title_cmd2 = tk.Label(grid_cmd2, text="Command Set #2", font=("Helvetica", 16, "bold"))
+title_cmd2.grid(row=0)
+
 create_grid(relays_16.items(),16)
 create_grid(relays_8.items(),8)
 create_grid(cmds.items(),0)
+create_grid(cmds2.items(),1)
 clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
 clock.config(anchor="center")
 clock.grid(row=0, column=0)
