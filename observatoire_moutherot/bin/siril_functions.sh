@@ -1,12 +1,53 @@
 #!/bin/bash
 #
-export SIRROOT="/data/astrolab"
-export SIRBIN="$SIRROOT/bin"
-export SIRCALIB="$SIRROOT/Poseidon_ccd"
-export SIRTMP="$SIRROOT/tmp"
-export SIRLOG="$SIRROOT/log"
-export PATH="$SIRBIN:$PATH"
-source ~/git/dulleutil/observatoire_moutherot/bin/siril-completion
+#
+#
+source /etc/bash_completion.d/siril-completion
+
+# User-defined nomenclature and separators
+declare -A config
+declare -A extract
+config[nomenclature]="object-filter-exposure-binning_timestamp"
+config[separators]="- _"
+
+# Function to extract fields from a filename
+extract_fields() {
+    local filename=$(basename "$1")
+    
+    # Remove all extensions from the filename
+    while [[ $filename =~ \.[^.]+$ ]]; do
+        filename=${filename%.*}
+    done
+    
+    local nomenclature=${config[nomenclature]}
+    local separators=${config[separators]}
+
+    # Extract the field names into an array
+    IFS='-' read -ra fields <<< "${nomenclature//[_@]/-}"
+
+    # Extract the objectname field (first field)
+    local first_sep=${separators:0:1}
+    local objectname="${filename%%$first_sep*}"
+    local remaining_filename="${filename#*$first_sep}"
+
+    # Replace the separators in the remaining filename with spaces
+    local sep_pattern=$(echo $separators | sed 's/ /|/g')
+    IFS=' ' read -ra field_values <<< "$(echo "$remaining_filename" | sed -E "s/($sep_pattern)/ /g")"
+    
+    # Add the objectname to the field values
+    field_values=("$objectname" "${field_values[@]}")
+
+    # Check if the number of fields matches the number of values
+    if [ ${#fields[@]} -ne ${#field_values[@]} ]; then
+        echo "Error: Number of fields and values do not match."
+        return 1
+    fi
+
+    # Create an associative array to store the field values
+    for i in "${!fields[@]}"; do
+        extract[${fields[$i]}]=${field_values[$i]}
+    done
+}
 
 srl_guesstype(){
     shopt -s nocasematch;
@@ -85,7 +126,14 @@ if ! test "$?" = "0"; then
     echo "No sequence found in dir $rootdir" >&2
 fi
 }
-export chkseq
+
+srl_getobjname(){
+    echo $1 |awk -F- '{print $1}'
+}
+
+srl_pplist(){
+    echo $1
+}
 
 srl_mkmaster(){
     if test -z "$rootdir"; then
@@ -141,3 +189,11 @@ mkflat(){
         mv $rootdir/$(basename ${i} .seq)* $calibdir/archives/
     done
 }
+
+export SRL="/data/astrolab"
+export SRLBIN="$SRLROOT/bin"
+export SRLCAL="$SRLROOT/Poseidon_ccd"
+export SRLTMP="$SRLROOT/tmp"
+export SRLLOG="$SRLROOT/log"
+export PATH="$SRLBIN:$PATH"
+
