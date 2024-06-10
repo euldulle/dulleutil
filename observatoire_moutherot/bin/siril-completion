@@ -1,0 +1,95 @@
+# Completion script for siril
+
+# Function to provide completion for siril
+#   _seq_completion() {
+#       local cur prev opts
+#       COMPREPLY=()
+#       cur="${COMP_WORDS[COMP_CWORD]}"
+#
+#       # Match .seq files in the current directory
+#       opts=$(compgen -f -- "$cur" | grep '\.seq$')
+#
+#       COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+#       return 0
+#   }
+
+_seq_completion() {
+#    set -x
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+#    echo "Current word: $cur" >&2
+#    echo "SRLWD: $srlwd" >&2
+    local srlwd="${SRLWD:-.}"  # Default to current directory if $SRLWD is not set
+
+    # Generate the list of .seq files in the $SRLWD directory
+    local_files=$(find "$srlwd" -maxdepth 1 -name "*.seq" |xargs -I@ basename @ _.seq)
+
+    # Generate the completion matches
+    COMPREPLY=( $(compgen -W "$local_files" -- "$cur") )
+#    set +x
+}
+
+_calseq_completion() {
+#    set -x
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+#    echo "Current word: $cur" >&2
+#    echo "SRLWD: $srlwd" >&2
+    local srlwd="${SRLWD:-.}"  # Default to current directory if $SRLWD is not set
+
+    # Generate the list of .seq files in the $SRLWD directory
+    #local_files=$(find "$srlwd" -maxdepth 1 -name "*.seq" -printf "%f\n")
+    local_files=$(find $SRLWD -iname "[Dark|Flat|Bias|offset]*.seq" |xargs -I@ basename @ _.seq)
+
+    # Generate the completion matches
+    COMPREPLY=( $(compgen -W "$local_files" -- "$cur") )
+#    set +x
+}
+
+
+_fitsfile_completion() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+#    echo "Current word: $cur" >&2
+#    echo "SRLWD: $srlwd" >&2
+    local srlwd="${SRLWD:-.}"  # Default to current directory if $SRLWD is not set
+
+    # Generate the list of .seq files in the $SRLWD directory
+    #local_files=$(find "$srlwd" -maxdepth 1 -name "*.seq" -printf "%f\n")
+   
+    local find_command=("-type" "f" )
+    local first_extension=true
+    for ext in "${SRLSFX[@]}"; do
+        if $first_extension; then
+            find_command+=('-iname'  '*'$ext)
+            first_extension=false
+        else
+            find_command+=("-o" "-iname"  '*'$ext)
+        fi
+    done
+    local_files=$(find $SRLWD "${find_command[@]}" |xargs -I@ basename @ )
+
+    # Generate the completion matches
+    COMPREPLY=( $(compgen -W "$local_files" -- "$cur") )
+}
+
+
+
+_obj_completion() {
+    local cur prev opts
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+
+    # Match .seq files in the current directory
+    opts=$(compgen -f -- "$cur" | grep '\.seq$' |awk -F- '{print $1}')
+
+    COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+    return 0
+}
+
+# Register the completion function for siril
+complete -F _calseq_completion srl_mkmaster 
+complete -F _obj_completion srl_pplist
+complete -F _seq_completion srl_getobj
+complete -F _seq_completion srl_getfilter
+complete -F _calseq_completion srl_lscal
+complete -F _seq_completion srl_seqsize
+complete -F _seq_completion srl_filecount 
+complete -F _fitsfile_completion srl_getwidth 
