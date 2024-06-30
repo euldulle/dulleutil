@@ -2,7 +2,9 @@
 #
 #
 #
-source /etc/bash_completion.d/siril-completion
+#source /etc/bash_completion.d/siril-completion
+export SIRILRC="$HOME/.config/siril/sirilrc" # location of the siril bash cli resource file
+source $SIRILRC
 #
 # Cosmétique (couleur, formattage...)
 #
@@ -335,13 +337,13 @@ srl_mkmaster(){
         case "$imgtyp" in
             "Bias")
                 norm=nonorm
-                mastername="MasterBias-$bin${SUFFIX[0]}";;
+                mastername="MasterBias-$bin${SRLSFX[0]}";;
             "Dark")
                 norm=nonorm
-                mastername="MasterDark-$exposure-$bin{SUFFIX[0]}";;
+                mastername="MasterDark-$exposure-$bin${SRLSFX[0]}";;
             "Flat")
                 norm=mul
-                mastername="MasterFlat-$filter-$bin{SUFFIX[0]}";;
+                mastername="MasterFlat-$filter-$bin${SRLSFX[0]}";;
 
             *)
                 echo "Unkown frame type @$imgtyp@, not stacking"
@@ -353,11 +355,18 @@ srl_mkmaster(){
 cd $SRLWD
 stack $seqname rej 3 3 -norm=$norm -out=$mastername
 ENDMKMASTER
-    destfile=${SRLCAL}/$(basename $mastername)
-    echo archive $archive
-    case "$archive" in 
+    ls -l $SRLWD/$mastername
+    destfile=${SRLCAL}/$mastername
+
+    if test -z "$archive"; then
+        green "archive $mastername to $SRLCAL ?"
+        splog "(y to archive, Y to overwrite existing)"
+        read archive
+    fi
+
+
+    case "$archive" in
         "y")
-            echo archive2 $archive
             if test -f "$destfile"; then # dest file exists
                 red "$destfile exists"
                 if [[ $- == *i* ]]; then # interactive, ask confirmation to overwrite
@@ -376,10 +385,11 @@ ENDMKMASTER
             ;;
 
         "Y")
-            echo archive2 $archive
             splog "Copying $mastername to $SRLCAL"
             cp -p $mastername $SRLCAL/$mastername
             ;;
+        *)
+            green -n "archive $mastername in $SRLCAL ? "
     esac
     return 0
 }
@@ -388,6 +398,11 @@ srl_wd(){
     if test -n "$1"; then
         if test -d "$1"; then
             export SRLWD="$1"
+            if ! test -f $SIRILRC; then
+                echo export SRLWD=$1 >$SIRILRC;
+            else
+                sed  -i 's@\(^export SRLWD=\).*@\1'$1'@' $SIRILRC
+            fi
         fi
     else
         echo $SRLWD
@@ -416,14 +431,4 @@ srl_mkflat(){
         mv $rootdir/$(basename ${i} .seq)* $calibdir/archives/
     done
 }
-
-export SRL="/data/astrolab"
-export SRLWD="$SRL/20240413/"
-export SRLBIN="$SRL/bin"
-export SRLCAL="$SRL/Poseidon_ccd"
-export SRLTMP="$SRL/tmp"
-export SRLLOG="$SRL/log"
-export PATH="$SRLBIN:$PATH"
-export SRLSFX=(".fits" ".fits.fz" ".fit" ".fit.fz")
-export SRLSEQSFX=(".seq" "_.seq")
 
