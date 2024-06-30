@@ -1,5 +1,6 @@
 #
 # resource file for bash-commandline siril framework
+# to be installed it in ~/.config/siril/
 #
 export SRL="/data/astrolab"
 export SRLBIN="$SRL/bin"
