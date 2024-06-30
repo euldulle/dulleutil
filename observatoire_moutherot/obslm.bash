@@ -129,13 +129,13 @@ ENDUSAGE
 olm_setr8(){
     switch="$1"
     if test -z "$switch"; then
-        setr8-usage
+        setr8_usage
         return
     fi
     shift
     setstate="$1"
     if test -z "$setstate"; then
-        setr8-usage
+        setr8_usage
         return
     fi
 
@@ -178,18 +178,18 @@ olm_setr16(){
     switch="$1"
     ad="$2"
     if test -z "$switch"; then
-        setr16-usage
+        setr16_usage
         return
     fi
 
     if test -z "$ad"; then
-        setr16-usage
+        setr16_usage
         return
     fi
 
     if ! test "$ad" = "1"; then
         if ! test "$ad" = "0"; then
-            setr16-usage
+            setr16_usage
             return
         fi
     fi
