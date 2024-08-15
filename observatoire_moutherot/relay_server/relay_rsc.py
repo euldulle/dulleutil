@@ -119,7 +119,8 @@ relays_8 = {
         'position': 0,
         'button': [],
         'addr': 1,
-        'status': "OFF"
+        'status': "OFF",
+        'config': "NO" # normally open
         },
 
     'Relay2': {
@@ -127,7 +128,8 @@ relays_8 = {
         'position': 1,
         'button': [],
         'addr': 2,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay3': {
@@ -135,7 +137,8 @@ relays_8 = {
         'position': 2,
         'button': [],
         'addr': 3,
-        'status': "OFF"
+        'status': "OFF",
+        'config': "NO" # normally open
         },
 
     'Relay4': {
@@ -143,7 +146,8 @@ relays_8 = {
         'position': 3,
         'button': [],
         'addr': 4,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay5': {
@@ -151,7 +155,8 @@ relays_8 = {
         'position': 4,
         'button': [],
         'addr': 5,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay6': {
@@ -159,7 +164,8 @@ relays_8 = {
         'position': 5,
         'button': [],
         'addr': 6,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay7': {

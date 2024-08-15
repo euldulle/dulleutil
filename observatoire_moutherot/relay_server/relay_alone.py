@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import os
+import sys
 import tkinter as tk
 from tkinter import messagebox
 import requests
@@ -80,8 +81,12 @@ def get_relay8_status():
         match="Relay%d"%i
         relay=relays_8[match]
         if relay['position']>=0:
-            if fields[i]!=relay['status']:
-                relay['status']="OFF" if fields[i] == '0' else 'ON'
+            if relay['config']=="NO": # normally open
+                if fields[i]!=relay['config']:
+                    relay['status']="OFF" if fields[i] == '0' else 'ON'
+            if relay['config']=="NC": # normally closed
+                if fields[i]!=relay['config']:
+                    relay['status']="ON" if fields[i] == '0' else 'OFF'
             relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
 
 def get_relay16_status():
@@ -290,7 +295,8 @@ def create_grid(items, rset):
                                             font=(font, fontsize))
             if rset==8:
                 relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
-                               fg='red' if relay['status']=="OFF" else 'green',
+                               fg='red' if (relay['status']=="OFF" and relay['config']=="NO" or
+                                            relay['status']=="ON" and relay['config']=="NC") else 'green',
                                command=lambda relais=relay: callback8(relais),
                                             font=(font, fontsize))
             if rset==0 or rset==1:
