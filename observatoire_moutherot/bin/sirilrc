@@ -1,0 +1,13 @@
+#
+# resource file for bash-commandline siril framework
+# to be installed it in ~/.config/siril/
+#
+export SRL="/data/astrolab"
+export SRLBIN="$SRL/bin"
+export SRLCAL="$SRL/Poseidon_ccd"
+export SRLTMP="$SRL/tmp"
+export SRLLOG="$SRL/log"
+export PATH="$SRLBIN:$PATH"
+export SRLSFX=(".fits" ".fits.fz" ".fit" ".fit.fz")
+export SRLSEQSFX=(".seq" "_.seq")
+export SRLWD=/data/astrolab/20240624/
