@@ -533,6 +533,14 @@ olm_get_relay_state(){
     fi
     }
 
+olm_in_eq8_reinitpark(){
+    need_host "odroid" || return
+    olm_in_stop eq8
+    cp $OLM_HOME/.indi/ParkData.xml-west $OLM_HOME/.indi/ParkData.xml
+    olm_in_start eq8
+    }
+
+
 olm_in_sync_eq8_time(){
     # init time
     #
