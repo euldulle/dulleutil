@@ -564,9 +564,10 @@ olm_in_sync_eq8_time(){
 
 olm_in_dname(){
     case $1 in
-        indiserver|indi_atik_ccd|indi_eqmod_telescope|indi_qhy_ccd|indi_atik_wheel|indi_canon_ccd|indi_playerone_wheel|indi_playerone_ccd)
+        indiserver|indi_atik_ccd|indi_eqmod_telescope|indi_qhy_ccd|indi_atik_wheel|indi_canon_ccd|indi_playerone_wheel|indi_playerone_ccd|indi_eul_focuser)
             driver=$1;;
         atik) driver=indi_atik_ccd;;
+        eulfoc) driver=indi_eul_focuser;;
         p1) driver=indi_playerone_ccd;;
         eq8) driver=indi_eqmod_telescope;;
         qhy) driver=indi_qhy_ccd;;
