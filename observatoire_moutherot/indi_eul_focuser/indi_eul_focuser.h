@@ -46,7 +46,7 @@ private:
 
     uint32_t usteps_per_mm=470;
     uint32_t usteps_per_step=32;
-    uint32_t delay_step;
+    uint32_t delay_step=400;
     uint32_t backlash[2]={
         200, // [0] = backlash when going from OUTFOCUS to INFOCUS
         240  // [1] = backlash when going from INFOCUS to OUTFOCUS
