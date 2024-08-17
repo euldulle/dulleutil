@@ -40,7 +40,7 @@ export OLM_ISERVPIDFILE=$OLM_IRUN/indiserver.pid
 export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
 export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
 export OLM_O2SHARE="$OLM_ROOT/o2oid"
-export OLM_BATSTATUS=$OLM_O2SHARE/capstatus.txt
+export OLM_BATSTATUS=$OLM_ROOT/capstatus.txt
 export OLM_SEM_ACK_COV=$OLM_IROOT/ackcov
 
 #
@@ -533,6 +533,14 @@ olm_get_relay_state(){
     fi
     }
 
+olm_in_eq8_reinitpark(){
+    need_host "odroid" || return
+    olm_in_stop eq8
+    cp $OLM_HOME/.indi/ParkData.xml-west $OLM_HOME/.indi/ParkData.xml
+    olm_in_start eq8
+    }
+
+
 olm_in_sync_eq8_time(){
     # init time
     #
@@ -767,8 +775,10 @@ glist (){
 
 gstatus(){
     need_host "odroid" || return
-    gtest bat > $OLM_BATSTATUS
-    gtest cov >>$OLM_BATSTATUS
+    gtest cov
+    echo -n "$? " > $OLM_BATSTATUS
+    gtest bat
+    echo "$?" >> $OLM_BATSTATUS
     cat $OLM_BATSTATUS
 }
 
@@ -793,9 +803,13 @@ gack(){
     need_host "odroid" || return
     p1=$(eval echo \$${1}1)
     p2=$(eval echo \$${1}2)
-    gclr $p1
-    gclr $p2
-    gstatus
+    if test "$2" = "1"; then
+        gset $p1
+        gset $p2
+    else
+        gclr $p1
+        gclr $p2
+    fi
 }
 
 gtest(){
@@ -809,55 +823,37 @@ gtest(){
 
     read a <$fsbase/gpio$p1/value
     if test "$a" = "1"; then
-        echo -n "1 "
         return 1
     fi
 
     read a <$fsbase/gpio$p2/value
     if test "$a" = "1"; then
-        echo -n "1 "
         return 1
     fi
-    echo -n "0 "
     return 0
 }
 
 gclr (){
     need_host "odroid" || return
     pin=$fsbase/gpio$1
-    echo 0 |sudo tee $pin/value >/dev/null
+    echo 0 |sudo tee $pin/value >/dev/null 
 }
 
 gset (){
+    val=1
+    if test -n "$2"; then
+        val="$2"
+    fi
+    
     need_host "odroid" || return
     pin=$fsbase/gpio$1
-    echo 1 |sudo tee $pin/value >/dev/null
-    glist
+    echo $val |sudo tee $pin/value >/dev/null
 }
 
 gstop(){
     need_host "odroid" || return
     stopcov
     stopbat
-    /bin/rm -f $OLM_SEM_ACK_COV
-}
-
-closecov(){
-    need_host "odroid" || return
-    gtest bat
-    if test "$?" = "0"; then
-        gtest cov
-        if test "$?" = 0 || test -f "$OLM_SEM_ACK_COV"; then
-            gclr $cov1 >/dev/null 2>&1
-            gset $cov2 >/dev/null 2>&1
-            nohup sleep $traveltime  >/dev/null 2>&1 && gset $cov1 && gstatus >/dev/null & >/dev/null 2>&1
-        else
-            echo "cov already closed"
-        fi
-    else
-        echo "bat not safe, not closing cov"
-    fi
-    gstatus
     /bin/rm -f $OLM_SEM_ACK_COV
 }
 
@@ -871,6 +867,15 @@ stopcov(){
     /bin/rm -f $OLM_SEM_ACK_COV
 }
 
+syncstatus(){
+    if ! test -f "/tmp/$(basename $OLM_BATSTATUS)"; then
+        read vcov vbat <$OLM_BATSTATUS
+        gack cov $vcov 
+        gack bat $vbat 
+        touch /tmp/$(basename $OLM_BATSTATUS)
+    fi
+}
+
 opencov(){
     need_host "odroid" || return
     gtest bat
@@ -879,42 +884,13 @@ opencov(){
         if test "$?" = 1 || test -f "$OLM_SEM_ACK_COV"; then
             gset $cov1 >/dev/null 2>&1
             gclr $cov2 >/dev/null 2>&1
-            nohup sleep $traveltime >/dev/null 2>&1  && gclr $cov1 && gstatus >/dev/null & >/dev/null 2>&1
+            ((sleep $traveltime && gclr $cov1 )& disown) >/dev/null 2>&1 
         else
             echo "cov already open"
         fi
     else
         echo "bat not safe, not opening cov"
     fi
-    /bin/rm -f $OLM_SEM_ACK_COV
-}
-
-closebat(){
-    need_host "odroid" || return
-    gtest cov
-    if test "$?" = 0; then
-        gtest bat
-        if test "$?" = 0 || test -f $OLM_SEM_ACK_COV; then
-            gclr $bat1 >/dev/null 2>&1
-            gset $bat2 >/dev/null 2>&1
-            nohup sleep $traveltime >/dev/null 2>&1 && gset $bat1 && gstatus >/dev/null & >/dev/null 2>&1
-        else
-            echo "bat already closed"
-        fi
-    else
-        echo "cov not safe, not closing bat"
-    fi
-    gstatus
-    /bin/rm -f $OLM_SEM_ACK_COV
-}
-
-stopbat(){
-    need_host "odroid" || return
-    killall sleep
-    sleep .5
-    gset $bat1 >/dev/null 2>&1
-    gset $bat2 >/dev/null 2>&1
-    gstatus
     /bin/rm -f $OLM_SEM_ACK_COV
 }
 
@@ -926,13 +902,61 @@ openbat(){
         if test "$?" = 1 || test -f "$OLM_SEM_ACK_COV"; then
             gset $bat1 >/dev/null 2>&1
             gclr $bat2  >/dev/null 2>&1
-            nohup sleep $traveltime >/dev/null 2>&1 && gclr $bat1 && gstatus >/dev/null & >/dev/null 2>&1
+            ((sleep $traveltime && gclr $bat1)& disown) >/dev/null 2>&1 
         else
             echo "bat already open"
         fi
     else
         echo "cov not safe, not opening bat"
     fi
+    /bin/rm -f $OLM_SEM_ACK_COV
+}
+
+
+closecov(){
+    need_host "odroid" || return
+    gtest bat
+    if test "$?" = "0"; then
+        gtest cov
+        if test "$?" = 0 || test -f "$OLM_SEM_ACK_COV"; then
+            gclr $cov1 >/dev/null 2>&1
+            gset $cov2 >/dev/null 2>&1
+            ((sleep $traveltime  && gset $cov1)& disown )>/dev/null 2>&1
+        else
+            echo "cov already closed" >&2
+        fi
+    else
+        echo "bat not safe, not closing cov">&2
+    fi
+    gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
+}
+
+closebat(){
+    need_host "odroid" || return
+    gtest cov
+    if test "$?" = 0; then
+        gtest bat
+        if test "$?" = 0 || test -f $OLM_SEM_ACK_COV; then
+            gclr $bat1 >/dev/null 2>&1
+            gset $bat2 >/dev/null 2>&1
+            ((sleep $traveltime && gset $bat1)& disown) >/dev/null 2>&1
+        else
+            echo "bat already closed">&2
+        fi
+    else
+        echo "cov not safe, not closing bat">&2
+    fi
+    gstatus
+    /bin/rm -f $OLM_SEM_ACK_COV
+}
+
+stopbat(){
+    need_host "odroid" || return
+    killall sleep
+    sleep .5
+    gset $bat1 >/dev/null 2>&1
+    gset $bat2 >/dev/null 2>&1
     gstatus
     /bin/rm -f $OLM_SEM_ACK_COV
 }
@@ -962,6 +986,7 @@ if test "$HOSTNAME" = "odroid"; then
     if ! test -d $fsbase/gpio"$bat1"; then
         covinit
     fi
+    syncstatus
 fi
 
 if test -n "$1"; then
