@@ -188,7 +188,7 @@ def main():
         tsroi = cv2.dilate(tsroi, kernel,iterations=1)  
         tsroi = cv2.erode(tsroi, kernel, iterations=2)
         saveimg(tsroi,"small")
-        small,s_contours=detect_small_hand(tsroi)
+        newsmall,s_contours=detect_small_hand(tsroi)
 
         # Draw contours on the image
         cv2.drawContours(isroic, s_contours, -1, (0, 255, 255), 2)
@@ -201,8 +201,19 @@ def main():
         tlroi = cv2.erode(tlroi, kernel,iterations=8)  
         #cv2.rectangle(tlroi,(0,0),(lroi[2], lroi[3]),(255,255,255),5)
         saveimg(tlroi,"large")
-        large,l_contours=detect_large_hand(tlroi)
-        print (datetime.now()," large %6.3f"%large," small %6.3f"%small)
+        newlarge,l_contours=detect_large_hand(tlroi)
+        if (newsmall<99):
+            small=newsmall
+        if (newlarge<99):
+            large=newlarge
+        if (newlarge>1):
+            newlarge-=1
+        
+        if (small-np.floor(small)>0.9 and large <0.2):
+            small+=1
+
+        final=np.floor(small)+large
+        print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)"%small)
 
         # Draw contours on the image
         cv2.drawContours(ilroic, l_contours, -1, (0, 255, 255), 2)
