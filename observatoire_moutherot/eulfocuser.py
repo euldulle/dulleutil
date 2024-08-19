@@ -11,12 +11,18 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
+from sys import argv
 
-global isroic,ilroic
+global isroic,ilroic,testing
 rep="/data/mitutoyo/"
 sroi = (592, 72, 300, 300)  # Replace with actual ROI for small hand
 lroi = (332, 196, 600, 600)  # Replace with actual ROI for large hand
-segment_length_range = (380, 620, 800, 1000)
+centerLroi=(int(lroi[2]/2),int(lroi[3]/2))
+centerSroi=(int(sroi[0]/2),int(sroi[1]/2))
+smallContourRange = (380, 620)
+largeContourRange = (800, 1000)
+largeContourRangeDegraded = (570, 580)
+
 rois = [sroi, lroi]
 # Filter contours based on length
 small_hand_contours = []
@@ -28,7 +34,7 @@ def ps(v1,v2):
     return np.sign(v1[0]*v2[0]+v1[1]*v2[1])
 
 # Function to detect hands and calculate angles
-def detect_small_hand(image):
+def detect_small_hand(image,contourRange):
     # Find contours for small hand
     small_hand_contours,hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     saveimg(image,"smallcontours")
@@ -40,7 +46,7 @@ def detect_small_hand(image):
         # print("small length: %f"%length)
 
         # Filter based on length range
-        if length >= segment_length_range[0] and length <= segment_length_range[1]:
+        if length >= contourRange[0] and length <= contourRange[1]:
             small_angle=get_principal_axis(contour,isroic,sroi)
             if (small_angle<-5):
                 small_angle+=360
@@ -49,27 +55,31 @@ def detect_small_hand(image):
 
     return small_tirage,small_hand_contours
 
-def detect_large_hand(image):
+def detect_large_hand(image, contourRange):
     global cx,cy,ellipse,rect
 
     # Find contours for small hand
     large_hand_contours,hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    saveimg(image,"largecontours")
+    if testing:
+        saveimg(image,"largecontours")
 
     large_tirage=99
     for contour in large_hand_contours:
         # Calculate length of contour
         length = cv2.arcLength(contour, True)
-        print("large length: %f"%length)
+        if testing:
+            print("large length: %f"%length)
 
         # Filter based on length range
-        if length >= segment_length_range[2] and length <= segment_length_range[3]:
-            large_angle=0-get_principal_axis(contour,ilroic,lroi)
-            if large_angle<0:
-                large_angle+=360
-            large_tirage=large_angle/360
-            #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
-            #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
+        #if cv2.pointPolygonTest(contour,centerLroi,False)>0:
+        if length >= contourRange[0] and length <= contourRange[1]:
+            if cv2.pointPolygonTest(contour,centerLroi,False)>0:
+                large_angle=0-get_principal_axis(contour,ilroic,lroi)
+                if large_angle<0:
+                    large_angle+=360
+                large_tirage=large_angle/360
+                #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
+                #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
 
     return large_tirage,large_hand_contours
 
@@ -132,7 +142,11 @@ def imroi(image,roi):
 
 # Main function
 def main():
-    global isroic,ilroic
+    global isroic,ilroic,testing
+
+    testing=False
+    if len(argv)>1:
+        testing=True
     # Capture image using Raspberry Pi camera
     cv2.startWindowThread()
 
@@ -157,12 +171,14 @@ def main():
         #
         # dessin ROI large and small
         #
-        imroi_i=draw_rois_on_image(image)
+        if testing:
+            imroi_i=draw_rois_on_image(image)
         #
         #
         # sauvegarde image avec ROIs
         #
-        saveimg(imroi_i,"rois")
+        if testing:
+            saveimg(imroi_i,"rois")
         #
         #
         # extraction ROIs
@@ -171,7 +187,8 @@ def main():
         ilroic = ilroi.copy()
         isroi = imroi(image, sroi)
         isroic = isroi.copy()
-        saveimg(ilroi,"lroi")
+        if testing:
+            saveimg(ilroi,"lroi")
         #
         #
         # conversion image en niveau
@@ -181,27 +198,37 @@ def main():
         # erosion :
         #   Creating kernel
         kernel = np.ones((3, 3), np.uint8)
-        saveimg(gray,"large")
+        if testing:
+            saveimg(gray,"large")
 
         tsroi = imroi(gray, sroi)
         _, tsroi = cv2.threshold(tsroi, 140, 255,  cv2.THRESH_BINARY_INV)
         tsroi = cv2.dilate(tsroi, kernel,iterations=1)
         tsroi = cv2.erode(tsroi, kernel, iterations=2)
-        saveimg(tsroi,"small")
-        newsmall,s_contours=detect_small_hand(tsroi)
+        if testing:
+            saveimg(tsroi,"small")
+
+        newsmall,s_contours=detect_small_hand(tsroi,smallContourRange)
 
         # Draw contours on the image
-        cv2.drawContours(isroic, s_contours, -1, (0, 255, 255), 2)
-        saveimg(isroic,"scontours")
+        if testing:
+            cv2.drawContours(isroic, s_contours, -1, (0, 255, 255), 2)
+            saveimg(isroic,"scontours")
 
         #   Using cv2.erode() method
         tlroi = imroi(gray, lroi)
         _, tlroi = cv2.threshold(tlroi, 140, 255,  cv2.THRESH_BINARY_INV )
         tlroi = cv2.dilate(tlroi, kernel,iterations=1)
         tlroi = cv2.erode(tlroi, kernel,iterations=8)
-        #cv2.rectangle(tlroi,(0,0),(lroi[2], lroi[3]),(255,255,255),5)
-        saveimg(tlroi,"large")
-        newlarge,l_contours=detect_large_hand(tlroi)
+        if testing:
+            saveimg(tlroi,"large")
+
+        contourRange=largeContourRange
+        if (newsmall==99):
+            cv2.circle(tlroi,centerLroi,275,(0,0,0),245)
+            contourRange=largeContourRangeDegraded
+
+        newlarge,l_contours=detect_large_hand(tlroi,contourRange)
         if (newsmall<99):
             small=newsmall
         if (newlarge<99):
@@ -213,11 +240,13 @@ def main():
             small+=1
 
         final=np.floor(small)+large
-        print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)"%small)
+
+        print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)\r"%small,end="")
 
         # Draw contours on the image
-        cv2.drawContours(ilroic, l_contours, -1, (0, 255, 255), 2)
-        saveimg(ilroic,"lcontours")
+        if testing:
+            cv2.drawContours(ilroic, l_contours, -1, (0, 255, 255), 2)
+            saveimg(ilroic,"lcontours")
 
 
 if __name__ == "__main__":
