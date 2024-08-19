@@ -3,7 +3,7 @@
 # The hardware part of the indi_eul_focuser
 #
 # aiming at reading the hands of a mitutoyo indicator
-# and spitting out the results to a udp client 
+# and spitting out the results to a udp client
 #           FM 20240823
 import time
 from picamera2 import Picamera2
@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
-    
+
 global isroic,ilroic
 rep="/data/mitutoyo/"
 sroi = (592, 72, 300, 300)  # Replace with actual ROI for small hand
@@ -32,13 +32,13 @@ def detect_small_hand(image):
     # Find contours for small hand
     small_hand_contours,hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     saveimg(image,"smallcontours")
-    
+
     small_tirage=99
     for contour in small_hand_contours:
         # Calculate length of contour
         length = cv2.arcLength(contour, True)
         # print("small length: %f"%length)
-        
+
         # Filter based on length range
         if length >= segment_length_range[0] and length <= segment_length_range[1]:
             small_angle=get_principal_axis(contour,isroic,sroi)
@@ -46,22 +46,22 @@ def detect_small_hand(image):
                 small_angle+=360
             small_tirage=small_angle/360*10
             #print (datetime.now()," small tirage %6.3f"%small_tirage)
-    
+
     return small_tirage,small_hand_contours
 
 def detect_large_hand(image):
     global cx,cy,ellipse,rect
-    
+
     # Find contours for small hand
     large_hand_contours,hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     saveimg(image,"largecontours")
-    
+
     large_tirage=99
     for contour in large_hand_contours:
         # Calculate length of contour
         length = cv2.arcLength(contour, True)
         print("large length: %f"%length)
-        
+
         # Filter based on length range
         if length >= segment_length_range[2] and length <= segment_length_range[3]:
             large_angle=0-get_principal_axis(contour,ilroic,lroi)
@@ -70,24 +70,24 @@ def detect_large_hand(image):
             large_tirage=large_angle/360
             #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
             #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
-    
+
     return large_tirage,large_hand_contours
 
 # Function to convert angles to distances
 def angles_to_distances(small_hand_angle, large_hand_angle):
     # Calculate distances based on angle and indicator properties
-    
+
     return small_hand_distance, large_hand_distance
 
 def draw_rois_on_image(image):
     # Make a copy of the image to draw on
     image_with_rois = image.copy()
-    
+
     for roi in rois:
         x, y, w, h = roi
         # Draw rectangle around ROI
         cv2.rectangle(image_with_rois, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    
+
     return image_with_rois
 
 def draw_axis(img, p, q, color, scale):
@@ -165,7 +165,7 @@ def main():
         saveimg(imroi_i,"rois")
         #
         #
-        # extraction ROIs 
+        # extraction ROIs
         #
         ilroi = imroi(image, lroi)
         ilroic = ilroi.copy()
@@ -179,13 +179,13 @@ def main():
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         #
         # erosion :
-        #   Creating kernel 
-        kernel = np.ones((3, 3), np.uint8) 
+        #   Creating kernel
+        kernel = np.ones((3, 3), np.uint8)
         saveimg(gray,"large")
-          
+
         tsroi = imroi(gray, sroi)
         _, tsroi = cv2.threshold(tsroi, 140, 255,  cv2.THRESH_BINARY_INV)
-        tsroi = cv2.dilate(tsroi, kernel,iterations=1)  
+        tsroi = cv2.dilate(tsroi, kernel,iterations=1)
         tsroi = cv2.erode(tsroi, kernel, iterations=2)
         saveimg(tsroi,"small")
         newsmall,s_contours=detect_small_hand(tsroi)
@@ -194,11 +194,11 @@ def main():
         cv2.drawContours(isroic, s_contours, -1, (0, 255, 255), 2)
         saveimg(isroic,"scontours")
 
-        #   Using cv2.erode() method  
+        #   Using cv2.erode() method
         tlroi = imroi(gray, lroi)
         _, tlroi = cv2.threshold(tlroi, 140, 255,  cv2.THRESH_BINARY_INV )
-        tlroi = cv2.dilate(tlroi, kernel,iterations=1)  
-        tlroi = cv2.erode(tlroi, kernel,iterations=8)  
+        tlroi = cv2.dilate(tlroi, kernel,iterations=1)
+        tlroi = cv2.erode(tlroi, kernel,iterations=8)
         #cv2.rectangle(tlroi,(0,0),(lroi[2], lroi[3]),(255,255,255),5)
         saveimg(tlroi,"large")
         newlarge,l_contours=detect_large_hand(tlroi)
@@ -208,7 +208,7 @@ def main():
             large=newlarge
         if (newlarge>1):
             newlarge-=1
-        
+
         if (small-np.floor(small)>0.9 and large <0.2):
             small+=1
 
