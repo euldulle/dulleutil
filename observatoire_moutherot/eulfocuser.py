@@ -21,7 +21,7 @@ centerLroi=(int(lroi[2]/2),int(lroi[3]/2))
 centerSroi=(int(sroi[0]/2),int(sroi[1]/2))
 smallContourRange = (380, 620)
 largeContourRange = (800, 1000)
-largeContourRangeDegraded = (570, 580)
+largeContourRangeDegraded = (500, 580)
 
 rois = [sroi, lroi]
 # Filter contours based on length
@@ -143,6 +143,9 @@ def imroi(image,roi):
 # Main function
 def main():
     global isroic,ilroic,testing
+
+    small=99
+    large=99
 
     testing=False
     if len(argv)>1:
