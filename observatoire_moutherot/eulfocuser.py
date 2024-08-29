@@ -37,7 +37,8 @@ def ps(v1,v2):
 def detect_small_hand(image,contourRange):
     # Find contours for small hand
     small_hand_contours,hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    saveimg(image,"smallcontours")
+    if testing:
+        saveimg(image,"smallcontours")
 
     small_tirage=99
     for contour in small_hand_contours:
@@ -51,6 +52,7 @@ def detect_small_hand(image,contourRange):
             if (small_angle<-5):
                 small_angle+=360
             small_tirage=small_angle/360*10
+            break
             #print (datetime.now()," small tirage %6.3f"%small_tirage)
 
     return small_tirage,small_hand_contours
@@ -78,6 +80,7 @@ def detect_large_hand(image, contourRange):
                 if large_angle<0:
                     large_angle+=360
                 large_tirage=large_angle/360
+                break
                 #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
                 #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
 
@@ -125,9 +128,10 @@ def get_principal_axis(contour, imroic, roi):
     (ccx,ccy),radius = cv2.minEnclosingCircle(contour)
     ccenter=(int(ccx),int(ccy))
     imcenter=(int(roi[2]/2),int(roi[3]/2))
-    cv2.circle(imroic,ccenter,int(radius),(0,0,255),2)
-    cv2.line(imroic,imcenter,ccenter,(0,255,0),2)
-    cv2.line(imroic,imcenter,(pa1x,pa1y),(255,0,0),2)
+    if testing:
+        cv2.circle(imroic,ccenter,int(radius),(0,0,255),2)
+        cv2.line(imroic,imcenter,ccenter,(0,255,0),2)
+        cv2.line(imroic,imcenter,(pa1x,pa1y),(255,0,0),2)
     prods=ps(((ccenter[0]-imcenter[0]),(ccenter[1]-imcenter[1])),(principal_axis))
     angle = np.arctan2(principal_axis[1]*prods,principal_axis[0]*prods)  # angle in radians
     angle_degrees = 90-np.degrees(angle)  # optional: convert the angle to degrees
@@ -228,7 +232,7 @@ def main():
 
         contourRange=largeContourRange
         if (newsmall==99):
-            cv2.circle(tlroi,centerLroi,275,(0,0,0),245)
+            cv2.circle(tlroi,centerLroi,275,(0,0,0),10)
             contourRange=largeContourRangeDegraded
 
         newlarge,l_contours=detect_large_hand(tlroi,contourRange)
@@ -244,7 +248,8 @@ def main():
 
         final=np.floor(small)+large
 
-        print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)\r"%small,end="")
+        #print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)\r"%small,end="")
+        print ("%6.3f (%6.3f / %6.3f)\r"%(final,large,small),end="")
 
         # Draw contours on the image
         if testing:
