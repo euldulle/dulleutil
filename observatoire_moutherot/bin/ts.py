@@ -3,8 +3,19 @@ import time, sys, _thread, tty, termios
 from time import sleep
 import RPi.GPIO as GPIO
 import curses
+import socket
 #from mx import DateTime
 from gpio_filter_assignments import *
+
+def init_listen_udp(port):
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.bind(('', port))
+    return udp_socket
+
+def udp_update_pos():
+    message, addr = udpsocket.recvfrom(1024)  # Buffer size is 1024 bytes
+    final,large,small,status=message.decode().split()
+    return float(final),float(large),float(small),int(status)
 
 stdscr = curses.initscr()
 try:
@@ -30,8 +41,6 @@ steps_per_um=0.0104
 usteps_per_step=32
 delay_step=0.01/usteps_per_step
 usteps_per_um=steps_per_um*usteps_per_step
-backlash_param=float(5*usteps_per_step)
-backlash_param=250
 #
 #
 # GPIO pin assingnment
@@ -96,37 +105,45 @@ def keypress():
 
 _thread.start_new_thread(keypress, ())
 
-def do_move():
-    global step_scale, step_range, step_inc, delay_step, step_pos, backlash_param, old_dir, ustep_count, step_dir
-
+def do_move(usteps):
+    global step_scale, step_range, step_inc, delay_step, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
+    
+    if usteps==0:
+        return 
     GPIO.output(o_enable_c14,GPIO.HIGH)
-
-    count=usteps_per_um*step_scale[step_range]
-    if old_dir!=step_inc:
-        count=count+backlash_param
-    old_dir=step_inc
-    if step_inc==1:
+   
+    if (usteps>0)
+        # outwards increase backfocus
         GPIO.output(o_dir_c14, GPIO.LOW)
     else:
+        # inwards decrease backfocus
         GPIO.output(o_dir_c14, GPIO.HIGH)
+        usteps=-usteps
 
-    while count>0:
-        count=count-1
+    while (usteps>0):
+        --usteps
         GPIO.output(o_step_c14, GPIO.HIGH)
         sleep(delay_step)
         GPIO.output(o_step_c14, GPIO.LOW)
         sleep(delay_step)
-        ustep_count=ustep_count+step_inc
-    step_pos=(step_pos+step_dir*step_inc*step_scale[step_range])
+    #logmsg="C%d"%count
+
     GPIO.output(o_enable_c14,GPIO.HIGH)
     GPIO.output(o_enable_c14,GPIO.LOW)
 
+global udpsocket, logmsg
+
+udpsocket=init_listen_udp(2345)
+final=0
 pwr_stepper(ts_drv_addr, ON)
+logmsg="ready"
 #
 #
 #
 # n=DateTime.now()
+target=0
 while True:
+    final,large,small,status=udp_update_pos()
     if keycode==27:
         keycode=ord(getch())
         if keycode==91:
@@ -137,10 +154,16 @@ while True:
                 step_range=max(0,step_range-1)
             elif keycode==68: # right
                 step_inc=1;
-                do_move()
+                final,large,small,status=udp_update_pos()
+                target=final+float(step_scale[step_range])/1000
+                goto(target)
+                #logmsg="T%.3f"%target
             elif keycode==67: # left
                 step_inc=-1;
-                do_move()
+                final,large,small,status=udp_update_pos()
+                target=final-float(step_scale[step_range])/1000
+                goto(target)
+                #logmsg="T%.3f"%target
     elif keycode==122:
         step_pos=0
         ustep_count=0
@@ -160,7 +183,8 @@ while True:
         keycode=None
         _thread.start_new_thread(keypress, ())
     #s="\n %+6d  %7.1f\n\n    %s\n"%(step_pos*steps_per_um, steps_per_um*step_scale[step_range],n.strftime("%H:%M:%S"))
-    s="\n %+6d  %7.1f\n\n  usteps : %d  %s\n"%(step_pos, step_scale[step_range], ustep_count, "ready")
+    #s="\n %+6d  %7.1f\n\n  usteps : %d  %s\n"%(step_pos, step_scale[step_range], ustep_count, "ready")
+    s="\n %+6d  %7.1f\n\n  udp : %s  %s\n"%(step_pos, step_scale[step_range], final, logmsg)
     try:
         stdscr.addstr(2,1,s,curses.A_BOLD)
     except:
