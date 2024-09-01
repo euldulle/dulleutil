@@ -4,6 +4,7 @@ from time import sleep
 import RPi.GPIO as GPIO
 import curses
 import socket
+from math import ceil
 #from mx import DateTime
 from gpio_filter_assignments import *
 
@@ -40,7 +41,7 @@ ustep_count=0
 steps_per_um=0.0104
 usteps_per_step=32
 delay_step=0.01/usteps_per_step
-usteps_per_um=steps_per_um*usteps_per_step
+usteps_per_um=0.600
 #
 #
 # GPIO pin assingnment
@@ -105,14 +106,18 @@ def keypress():
 
 _thread.start_new_thread(keypress, ())
 
+def goto(target, current, estimated_steps):
+    current,large,small,status=udp_update_pos()
+    do_move(estimated_steps)
+
 def do_move(usteps):
-    global step_scale, step_range, step_inc, delay_step, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
+    global step_scale, step_range, delay_step, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
     
     if usteps==0:
         return 
     GPIO.output(o_enable_c14,GPIO.HIGH)
    
-    if (usteps>0)
+    if (usteps>0):
         # outwards increase backfocus
         GPIO.output(o_dir_c14, GPIO.LOW)
     else:
@@ -131,7 +136,9 @@ def do_move(usteps):
     GPIO.output(o_enable_c14,GPIO.HIGH)
     GPIO.output(o_enable_c14,GPIO.LOW)
 
-global udpsocket, logmsg
+global udpsocket, logmsg, OUTWARDS, INWARDS
+OUTWARDS=1
+INWARDS=-1
 
 udpsocket=init_listen_udp(2345)
 final=0
@@ -152,17 +159,17 @@ while True:
                 step_range=min(max_range,step_range+1)
             elif keycode==66: # down
                 step_range=max(0,step_range-1)
-            elif keycode==68: # right
-                step_inc=1;
-                final,large,small,status=udp_update_pos()
+            elif keycode==68: # right outwards
+                current,large,small,status=udp_update_pos()
+                estimated_steps=ceil(float(step_scale[step_range])*usteps_per_um)
                 target=final+float(step_scale[step_range])/1000
-                goto(target)
+                goto(target,current,estimated_steps)
                 #logmsg="T%.3f"%target
             elif keycode==67: # left
-                step_inc=-1;
-                final,large,small,status=udp_update_pos()
-                target=final-float(step_scale[step_range])/1000
-                goto(target)
+                current,large,small,status=udp_update_pos()
+                estimated_steps=-ceil(float(step_scale[step_range])*usteps_per_um)
+                target=current-float(step_scale[step_range])/1000
+                goto(target,current,estimated_steps)
                 #logmsg="T%.3f"%target
     elif keycode==122:
         step_pos=0
