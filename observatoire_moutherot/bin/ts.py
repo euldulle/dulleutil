@@ -8,13 +8,16 @@ from math import ceil
 #from mx import DateTime
 from gpio_filter_assignments import *
 
+def errprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs,flush=True)
+
 def init_listen_udp(port):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     udp_socket.bind(('', port))
     return udp_socket
 
 def udp_update_pos():
-    message, addr = udpsocket.recvfrom(1024)  # Buffer size is 1024 bytes
+    message, addr = udpsocket.recvfrom(32)  # Buffer size is 32 bytes
     final,large,small,status=message.decode().split()
     return float(final),float(large),float(small),int(status)
 
@@ -106,27 +109,45 @@ def keypress():
 
 _thread.start_new_thread(keypress, ())
 
-def goto(target, current, estimated_steps):
-    current,large,small,status=udp_update_pos()
-    do_move(estimated_steps)
+def get_usteps_from_dist(dist,rate):
+    # dist is in mm
+    # rate is in usteps per mm
+    #
+    # return value is in usteps
+    return int(ceil(dist)*rate)
+
+def goto(target, initial, usteps):
+    errprint("0 to: %f, from: %f est: %d\n"%(target, initial, usteps))
+    initial,large,small,status=udp_update_pos()
+    errprint("1 to: %f, from: %f est: %d\n"%(target, initial, usteps))
+    errprint("1st move usteps %d\n"%usteps)
+    do_move(usteps)
+    for i in range(5):
+        new,large,small,status=udp_update_pos()
+    errprint("After 1st move : target %.3f final %.3f delta %.3f \n"%(target,new,new-target))
+
+    # get an update of the ratio um/ustep
+    # based on last move :
+    rate=abs(new-current)/usteps
+    nextmove=get_usteps_from_dist(new-current,rate)
+    newtarget=(target-new)
 
 def do_move(usteps):
     global step_scale, step_range, delay_step, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
-    
     if usteps==0:
         return 
     GPIO.output(o_enable_c14,GPIO.HIGH)
    
     if (usteps>0):
         # outwards increase backfocus
-        GPIO.output(o_dir_c14, GPIO.LOW)
+        GPIO.output(o_dir_c14, GPIO.HIGH)
     else:
         # inwards decrease backfocus
-        GPIO.output(o_dir_c14, GPIO.HIGH)
+        GPIO.output(o_dir_c14, GPIO.LOW)
         usteps=-usteps
 
     while (usteps>0):
-        --usteps
+        usteps-=1
         GPIO.output(o_step_c14, GPIO.HIGH)
         sleep(delay_step)
         GPIO.output(o_step_c14, GPIO.LOW)
@@ -150,7 +171,9 @@ logmsg="ready"
 # n=DateTime.now()
 target=0
 while True:
-    final,large,small,status=udp_update_pos()
+    delta_dist=float(step_scale[step_range]) # requested delta_dist in um
+    delta_usteps=get_usteps_from_dist(delta_dist,usteps_per_um) # corresponding nr of usteps
+    current,large,small,status=udp_update_pos()
     if keycode==27:
         keycode=ord(getch())
         if keycode==91:
@@ -159,17 +182,12 @@ while True:
                 step_range=min(max_range,step_range+1)
             elif keycode==66: # down
                 step_range=max(0,step_range-1)
-            elif keycode==68: # right outwards
-                current,large,small,status=udp_update_pos()
-                estimated_steps=ceil(float(step_scale[step_range])*usteps_per_um)
-                target=final+float(step_scale[step_range])/1000
-                goto(target,current,estimated_steps)
-                #logmsg="T%.3f"%target
+            elif keycode==68: # left inwards
+                target=current-delta_dist/1000
+                goto(target,current,-delta_usteps)
             elif keycode==67: # left
-                current,large,small,status=udp_update_pos()
-                estimated_steps=-ceil(float(step_scale[step_range])*usteps_per_um)
-                target=current-float(step_scale[step_range])/1000
-                goto(target,current,estimated_steps)
+                target=current+delta_dist/1000 # target in mm
+                goto(target,current,+delta_usteps)
                 #logmsg="T%.3f"%target
     elif keycode==122:
         step_pos=0
@@ -191,7 +209,7 @@ while True:
         _thread.start_new_thread(keypress, ())
     #s="\n %+6d  %7.1f\n\n    %s\n"%(step_pos*steps_per_um, steps_per_um*step_scale[step_range],n.strftime("%H:%M:%S"))
     #s="\n %+6d  %7.1f\n\n  usteps : %d  %s\n"%(step_pos, step_scale[step_range], ustep_count, "ready")
-    s="\n %+6d  %7.1f\n\n  udp : %s  %s\n"%(step_pos, step_scale[step_range], final, logmsg)
+    s="\n %+7.3f  %7.1f\n\n  udp : %s  %s\n"%(current, step_scale[step_range], final, logmsg)
     try:
         stdscr.addstr(2,1,s,curses.A_BOLD)
     except:
@@ -199,6 +217,7 @@ while True:
         print ("%s Erreur (fenetre trop petite ?)\r"%("bin non"));
     stdscr.refresh()
 #    n=DateTime.now()
+    sys.stderr.flush()
     time.sleep(0.01)
 
 pwr_stepper(ts_drv_addr, OFF)
