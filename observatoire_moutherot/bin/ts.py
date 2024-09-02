@@ -8,6 +8,9 @@ from math import ceil
 #from mx import DateTime
 from gpio_filter_assignments import *
 
+def sign(x):
+    return (x > 0) - (x < 0)
+
 def errprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs,flush=True)
 
@@ -17,7 +20,8 @@ def init_listen_udp(port):
     return udp_socket
 
 def udp_update_pos():
-    message, addr = udpsocket.recvfrom(32)  # Buffer size is 32 bytes
+    message, addr = udpsocket.recvfrom(1024)  # Buffer size is 32 bytes
+    #errprint("UDP:",message.decode())
     final,large,small,status=message.decode().split()
     return float(final),float(large),float(small),int(status)
 
@@ -44,7 +48,7 @@ ustep_count=0
 steps_per_um=0.0104
 usteps_per_step=32
 delay_step=0.01/usteps_per_step
-usteps_per_um=0.600
+usteps_per_um=0.500
 #
 #
 # GPIO pin assingnment
@@ -114,37 +118,49 @@ def get_usteps_from_dist(dist,rate):
     # rate is in usteps per mm
     #
     # return value is in usteps
-    return int(ceil(dist)*rate)
+    return abs(int(ceil(dist)*rate))
 
-def goto(target, initial, usteps):
-    errprint("0 to: %f, from: %f est: %d\n"%(target, initial, usteps))
+def goto(target, initial, usteps, direction): # direction = INWARDS (-1) or OUTWARDS (+1)
+    maxmove=40
+    if usteps==0:
+        return
     initial,large,small,status=udp_update_pos()
-    errprint("1 to: %f, from: %f est: %d\n"%(target, initial, usteps))
-    errprint("1st move usteps %d\n"%usteps)
-    do_move(usteps)
-    for i in range(5):
+    new=initial
+    count=0
+    udpreads=1
+    try:
+        usteps=backlash*(direction!=goto.direction)+usteps
+    except:
+        goto.direction=direction
+    errprint("Goto : target %.3f initial %.3f"%(target,initial))
+    while(abs(target-new)>0.005 and count<maxmove):
+        count+=1
+        errprint("DoMove : %d steps dir %d (target %.3f new %.3f"%(usteps,direction,target,new))
+        do_move(usteps,direction)
+        for i in range(udpreads):
+            new,large,small,status=udp_update_pos()
         new,large,small,status=udp_update_pos()
-    errprint("After 1st move : target %.3f final %.3f delta %.3f \n"%(target,new,new-target))
+        goto.direction=direction
+        direction=sign(target-new)
+        usteps=backlash*(direction!=goto.direction)+max(4,get_usteps_from_dist(1000*(new-target),usteps_per_um))
+        udpreads=1
 
-    # get an update of the ratio um/ustep
-    # based on last move :
-    rate=abs(new-current)/usteps
-    nextmove=get_usteps_from_dist(new-current,rate)
-    newtarget=(target-new)
+    if(count>=maxmove):
+        errprint("Max reached : target %.3f final %.3f delta %.3f \n"%(target,new,new-target))
+    errprint("target %.3f final %.3f delta %.3f \n"%(target,new,new-target))
 
-def do_move(usteps):
+def do_move(usteps,direction):
     global step_scale, step_range, delay_step, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
     if usteps==0:
         return 
     GPIO.output(o_enable_c14,GPIO.HIGH)
    
-    if (usteps>0):
+    if (direction==OUTWARDS):
         # outwards increase backfocus
         GPIO.output(o_dir_c14, GPIO.HIGH)
     else:
         # inwards decrease backfocus
         GPIO.output(o_dir_c14, GPIO.LOW)
-        usteps=-usteps
 
     while (usteps>0):
         usteps-=1
@@ -152,14 +168,14 @@ def do_move(usteps):
         sleep(delay_step)
         GPIO.output(o_step_c14, GPIO.LOW)
         sleep(delay_step)
-    #logmsg="C%d"%count
 
     GPIO.output(o_enable_c14,GPIO.HIGH)
     GPIO.output(o_enable_c14,GPIO.LOW)
 
-global udpsocket, logmsg, OUTWARDS, INWARDS
+global udpsocket, logmsg, OUTWARDS, INWARDS, backlash
 OUTWARDS=1
 INWARDS=-1
+backlash=200 # unit is ustep
 
 udpsocket=init_listen_udp(2345)
 final=0
@@ -184,10 +200,10 @@ while True:
                 step_range=max(0,step_range-1)
             elif keycode==68: # left inwards
                 target=current-delta_dist/1000
-                goto(target,current,-delta_usteps)
+                goto(target,current,delta_usteps, INWARDS)
             elif keycode==67: # left
                 target=current+delta_dist/1000 # target in mm
-                goto(target,current,+delta_usteps)
+                goto(target,current,delta_usteps, OUTWARDS)
                 #logmsg="T%.3f"%target
     elif keycode==122:
         step_pos=0
