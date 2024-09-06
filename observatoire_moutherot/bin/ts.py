@@ -31,7 +31,7 @@ def init_listen_udp(port):
     return udp_socket
 
 def udp_update_pos():
-    global shared_final 
+    global shared_final
     udpsocket=init_listen_udp(2345)
     while True:
         message, addr = udpsocket.recvfrom(32)  # Buffer size is 32 bytes
@@ -70,7 +70,7 @@ def goto(target, usteps, direction): # direction = INWARDS (-1) or OUTWARDS (+1)
         goto.direction=direction
     with lock:
         current=shared_final
-        
+
     errprint("Goto : target %.3f current %.3f"%(target,shared_final))
     while(abs(target-current)>0.005 and count<maxmove):
         count+=1
@@ -93,9 +93,9 @@ def goto(target, usteps, direction): # direction = INWARDS (-1) or OUTWARDS (+1)
 def do_move(usteps,direction):
     global step_scale, step_range, delay_step, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
     if usteps==0:
-        return 
+        return
     GPIO.output(o_enable_c14,GPIO.HIGH)
-   
+
     if (direction==OUTWARDS):
         # outwards increase backfocus
         GPIO.output(o_dir_c14, GPIO.HIGH)
