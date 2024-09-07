@@ -274,7 +274,7 @@ def main():
         if final-small<-0.5:
             final+=1
 
-        final=11-final
+        final=9.6-final
 
         new=time.time()
         elapsed=new-old
