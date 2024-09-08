@@ -65,7 +65,7 @@ def goto(target, usteps, direction): # direction = INWARDS (-1) or OUTWARDS (+1)
     if target < 1.5:
         errprint("Goto : min backfocus reached")
         target =1.5
-        
+
     maxmove=60
     if usteps==0:
         return
@@ -125,7 +125,7 @@ def process_data():
     global backlash, usteps_per_um, delay_step1, delay_step2,accuracy
     backlash=150 # unit is ustep
     fdratio=8
-    maxdistorsion=1./8. # min target lambda/8 
+    maxdistorsion=1./8. # min target lambda/8
     band=0.0006 # observing wavelength in mm
     accuracy = 8*fdratio*fdratio*band*maxdistorsion # unit is mm
     #accuracy = 0.005
