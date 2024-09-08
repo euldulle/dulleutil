@@ -6,6 +6,7 @@
 # and spitting out the results to a udp client
 #           FM 20240823
 import time
+import socket
 from picamera2 import Picamera2
 import cv2
 import numpy as np
@@ -13,15 +14,16 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from sys import argv
 
-global isroic,ilroic,testing
+global isroic,ilroic,testing,udp_socket
 rep="/data/mitutoyo/"
 sroi = (592, 72, 300, 300)  # Replace with actual ROI for small hand
 lroi = (332, 196, 600, 600)  # Replace with actual ROI for large hand
 centerLroi=(int(lroi[2]/2),int(lroi[3]/2))
-centerSroi=(int(sroi[0]/2),int(sroi[1]/2))
+centerSroi=(int(sroi[2]/2),int(sroi[3]/2))
 smallContourRange = (380, 620)
-largeContourRange = (800, 1000)
-largeContourRangeDegraded = (500, 580)
+largeContourRange = (800, 1100)
+largeContourRangeDegraded = (700, 820)
+
 
 rois = [sroi, lroi]
 # Filter contours based on length
@@ -29,6 +31,14 @@ small_hand_contours = []
 large_hand_contours = []
 cx=int(0)
 cy=int(0)
+    
+def init_udp_broadcast():
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    return udp_socket
+
+def udp_broadcast(socket,message,port):
+    socket.sendto(message.encode(), ('255.255.255.255', port))
 
 def ps(v1,v2):
     return np.sign(v1[0]*v2[0]+v1[1]*v2[1])
@@ -37,7 +47,8 @@ def ps(v1,v2):
 def detect_small_hand(image,contourRange):
     # Find contours for small hand
     small_hand_contours,hierarchy = cv2.findContours(image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    saveimg(image,"smallcontours")
+    if testing:
+        saveimg(image,"smallcontours")
 
     small_tirage=99
     for contour in small_hand_contours:
@@ -46,12 +57,16 @@ def detect_small_hand(image,contourRange):
         # print("small length: %f"%length)
 
         # Filter based on length range
+        if testing:
+            print("small length: %f"%length)
         if length >= contourRange[0] and length <= contourRange[1]:
-            small_angle=get_principal_axis(contour,isroic,sroi)
-            if (small_angle<-5):
-                small_angle+=360
-            small_tirage=small_angle/360*10
-            #print (datetime.now()," small tirage %6.3f"%small_tirage)
+            if cv2.pointPolygonTest(contour,centerSroi,False)>0:
+                small_angle=get_principal_axis(contour,isroic,sroi)
+                if (small_angle<-5):
+                    small_angle+=360
+                small_tirage=small_angle/360*10
+                break
+                #print (datetime.now()," small tirage %6.3f"%small_tirage)
 
     return small_tirage,small_hand_contours
 
@@ -78,6 +93,7 @@ def detect_large_hand(image, contourRange):
                 if large_angle<0:
                     large_angle+=360
                 large_tirage=large_angle/360
+                break
                 #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
                 #print (datetime.now()," large tirage %6.3f"%large_tirage," angle %6.2f"%large_angle)
 
@@ -125,9 +141,10 @@ def get_principal_axis(contour, imroic, roi):
     (ccx,ccy),radius = cv2.minEnclosingCircle(contour)
     ccenter=(int(ccx),int(ccy))
     imcenter=(int(roi[2]/2),int(roi[3]/2))
-    cv2.circle(imroic,ccenter,int(radius),(0,0,255),2)
-    cv2.line(imroic,imcenter,ccenter,(0,255,0),2)
-    cv2.line(imroic,imcenter,(pa1x,pa1y),(255,0,0),2)
+    if testing:
+        cv2.circle(imroic,ccenter,int(radius),(0,0,255),2)
+        cv2.line(imroic,imcenter,ccenter,(0,255,0),2)
+        cv2.line(imroic,imcenter,(pa1x,pa1y),(255,0,0),2)
     prods=ps(((ccenter[0]-imcenter[0]),(ccenter[1]-imcenter[1])),(principal_axis))
     angle = np.arctan2(principal_axis[1]*prods,principal_axis[0]*prods)  # angle in radians
     angle_degrees = 90-np.degrees(angle)  # optional: convert the angle to degrees
@@ -144,6 +161,10 @@ def imroi(image,roi):
 def main():
     global isroic,ilroic,testing
 
+    udp_socket=init_udp_broadcast()
+    udpport=2345
+
+    count=0
     small=99
     large=99
 
@@ -163,8 +184,10 @@ def main():
     #    tlroi = imroi(thresh, lroi)
     #    tsroi = imroi(thresh, sroi)
     #    saveimg(tlroi,"large%.3d"%i)
+    old=time.time()
 
     while True:
+        status=3
         #
         #
         # acquisition image
@@ -228,28 +251,52 @@ def main():
 
         contourRange=largeContourRange
         if (newsmall==99):
-            cv2.circle(tlroi,centerLroi,275,(0,0,0),245)
+            cv2.circle(tlroi,centerLroi,275,(0,0,0),50)
             contourRange=largeContourRangeDegraded
 
         newlarge,l_contours=detect_large_hand(tlroi,contourRange)
         if (newsmall<99):
             small=newsmall
+            status-=1
+
         if (newlarge<99):
             large=newlarge
+            status-=2
+
         if (newlarge>1):
             newlarge-=1
 
-        if (small-np.floor(small)>0.9 and large <0.2):
-            small+=1
 
         final=np.floor(small)+large
+        if final-small>0.5:
+            final-=1
 
-        print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)\r"%small,end="")
+        if final-small<-0.5:
+            final+=1
+
+        final=11-final
+
+        new=time.time()
+        elapsed=new-old
+        #print (datetime.now()," final %6.3f (large %6.3f"%(final,large)," small %6.3f)\r"%small,end="")
+        message="%+07.3f %+07.3f %+07.3f %d"%(final,large,small,status)
+
+        if (elapsed > .1):
+            print (message,"%.3f\r"%elapsed,end="")
+            udp_broadcast(udp_socket,message,udpport)
+            old=new
 
         # Draw contours on the image
         if testing:
             cv2.drawContours(ilroic, l_contours, -1, (0, 255, 255), 2)
             saveimg(ilroic,"lcontours")
+
+        count=count+1
+        if count%100==0:
+            print (datetime.now())
+            #testing=True
+        else:
+            testing=False
 
 
 if __name__ == "__main__":
