@@ -30,10 +30,10 @@ def init_listen_udp(port):
     udp_socket.bind(('', port))
     return udp_socket
 
-def udp_update_pos():
+def udp_update_pos(event):
     global shared_final
     udpsocket=init_listen_udp(2345)
-    while True:
+    while not event.is_set():
         message, addr = udpsocket.recvfrom(32)  # Buffer size is 32 bytes
         final,large,small,status=message.decode().split()
 
@@ -43,9 +43,9 @@ def udp_update_pos():
 #
 # Threaded kb lookup
 #
-def keypress():
+def keypress(event):
     global keycode
-    while True:
+    while not event.is_set():
         keycode = ord(getch())
         sleep(.01)
 
@@ -140,7 +140,7 @@ def process_data():
     curses.noecho()
     s="    STEP TAK FOCUS    "
     stdscr.addstr(0,0,s,curses.A_REVERSE)
-    s="  POS(um)  INC (um) "
+    s="  POS(mm) (acc um)  INC (um) "
     stdscr.addstr(1,1,s,curses.A_BOLD)
 
     step_scale=[1,2,5,10,20,50,100,200,500,1000,2000,5000,10000]
@@ -194,7 +194,7 @@ def process_data():
     #
     keycode = None
 
-    while True:
+    while not event.is_set():
         delta_dist=float(step_scale[step_range]) # requested delta_dist in um
         delta_usteps=get_usteps_from_dist(delta_dist,usteps_per_um) # corresponding nr of usteps
         # current,large,small,status=udp_update_pos()
@@ -226,7 +226,9 @@ def process_data():
             curses.endwin()
             GPIO.cleanup()
             #pwr_stepper(ts_drv_addr, OFF)
+            event.set()
             sys.exit()
+
             break
 
 #        if keycode is not None:
@@ -234,7 +236,7 @@ def process_data():
 #            keycode=None
             #_thread.start_new_thread(keypress, ())
         if shared_final is not None:
-            s="\n %+7.3f (%0.3f)  %7.1f\n\n  udp : %s\n"%(current, accuracy, step_scale[step_range], logmsg)
+            s="\n %+7.3f (%3d)  %7.1f\n\n  udp : %s\n"%(current, accuracy*1000, step_scale[step_range], logmsg)
 
         try:
             stdscr.addstr(2,1,s,curses.A_BOLD)
@@ -270,11 +272,12 @@ if __name__ == "__main__":
 #
 #
     # Start the UDP listener thread
-    listener_thread = threading.Thread(target=udp_update_pos)
+    event=threading.Event()
+    listener_thread = threading.Thread(target=udp_update_pos,args=(event,))
     listener_thread.daemon = True
     listener_thread.start()
 
-    keypress_thread = threading.Thread(target=keypress)
+    keypress_thread = threading.Thread(target=keypress,args=(event,))
     keypress_thread.daemon = True
     keypress_thread.start()
 
