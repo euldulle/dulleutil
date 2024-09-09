@@ -1,5 +1,7 @@
 #!/usr/bin/python
 import os
+import sys
+sys.path.append('/home/fmeyer//git/dulleutil/observatoire_moutherot/relay_server/')
 import tkinter as tk
 from tkinter import messagebox
 import requests
@@ -9,8 +11,11 @@ import asyncio
 from time import sleep
 import paramiko
 import socket
+import threading
 from relay_rsc import *
 from datetime import datetime  # Import datetime module for timestamp
+
+lock = threading.Lock()
 
 class SSHClient:
     def __init__(self, host, port, username, private_key_file):
@@ -70,6 +75,7 @@ def update_time():
 
 def get_relay8_status():
     try:
+        # print(relay8_read)
         status=make_http_request(relay8_read).text.splitlines()
     except:
         add_log(" Relay8 request failed (%s)"%relay8_read)
@@ -80,8 +86,12 @@ def get_relay8_status():
         match="Relay%d"%i
         relay=relays_8[match]
         if relay['position']>=0:
-            if fields[i]!=relay['status']:
-                relay['status']="OFF" if fields[i] == '0' else 'ON'
+            if relay['config']=="NO": # normally open
+                if fields[i]!=relay['config']:
+                    relay['status']="OFF" if fields[i] == '0' else 'ON'
+            if relay['config']=="NC": # normally closed
+                if fields[i]!=relay['config']:
+                    relay['status']="ON" if fields[i] == '0' else 'OFF'
             relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
 
 def get_relay16_status():
@@ -124,6 +134,7 @@ def get_relay16_status():
         print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
 
 def make_http_request(url):
+    # sys.stderr.write(url+"\n")
     try:
         # Send GET request to the specified URL
         response = requests.get(url, timeout=(.5,.5))
@@ -184,20 +195,21 @@ def read_status():
     pollper=5           # poll every 5 seconds
     logfreq=60          # log every 60 seconds
     maxcount=logfreq/pollper
-
-    call_counter = (call_counter+1) % maxcount
-    if call_counter == 1:
-        add_log("Mark")
-    get_relay8_status()
-    get_relay16_status()
-    get_cmd_status()
-    try:
-        if not ssh_client.transport.is_active():
+    while True:
+        call_counter = (call_counter+1) % maxcount
+        if call_counter == 1:
+            add_log("Mark")
+        get_relay8_status()
+        get_relay16_status()
+        get_cmd_status()
+        try:
+            if not ssh_client.transport.is_active():
+                ssh_client.connect()
+        except:
             ssh_client.connect()
-    except:
-        ssh_client.connect()
 
-    root.after(1000*pollper, read_status)
+        #root.after(1000*pollper, read_status)
+        sleep(pollper)
 
 # Define internal functions to be executed for each cell
 def callback8( relais):
@@ -272,7 +284,7 @@ def create_grid(items, rset):
 
     if rset==0:
         frame=grid_cmd
-        incpos=1 # that's 1 for the title
+        incpos=2 # that's 1 for the title, 2 for time
 
     if rset==1:
         frame=grid_cmd2
@@ -284,36 +296,48 @@ def create_grid(items, rset):
 
             # Create button and bind the corresponding function
             if rset==16:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
+                relay['button'] = tk.Button(frame, text=button_text, width=4, height=2,
                                fg='red' if relay['status']=="OFF" else 'green',
                                command=lambda relais=relay: callback16(relais),
                                             font=(font, fontsize))
+                row=incpos+int((relay['position'])/3)
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                relay['button'].grid(row=row, column=relay['position']%3)
             if rset==8:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
-                               fg='red' if relay['status']=="OFF" else 'green',
+                relay['button'] = tk.Button(frame, text=button_text, width=4, height=2,
+                               fg='red' if (relay['status']=="OFF" and relay['config']=="NO" or
+                                            relay['status']=="ON" and relay['config']=="NC") else 'green',
                                command=lambda relais=relay: callback8(relais),
                                             font=(font, fontsize))
+                row=incpos+int((relay['position'])/3)
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                relay['button'].grid(row=row, column=relay['position']%3) 
+
             if rset==0 or rset==1:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
+                relay['button'] = tk.Button(frame, text=button_text, width=6, height=2,
                                fg='red' if relay['status']!=0 else 'green',
                                command=lambda cmd=relay['cmd'][relay['status']],
                                             relais=relay: remote_cmd(relais, cmd),
                                             font=(font, fontsize))
 
-            row=relay['position']+incpos
-            #relay['button'].grid(row=row, column=0, padx=1, pady=1)
-            relay['button'].grid(row=row, column=0)
+                row=incpos+int((relay['position'])/3)
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                relay['button'].grid(row=row, column=relay['position']%3) 
+                #row=relay['position']+incpos
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                #relay['button'].grid(row=row, column=0)
 
             buttons.append(relay['button'])
 
 def add_log(message):
-    global log_text
+    global log_text,lock
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp in desired format
     formatted_message = f"{timestamp} {message}"  # Concatenate timestamp with message
-    log_text.config(state=tk.NORMAL)  # Allow modifications to the Text widget
-    log_text.insert(1.0, formatted_message + '\n')  # Insert message at the beginning (top) of the Text widget
-    log_text.config(state=tk.DISABLED)  # Prevent further modifications to preserve read-only state
+    with lock:
+        log_text.config(state=tk.NORMAL)  # Allow modifications to the Text widget
+        log_text.insert(1.0, formatted_message + '\n')  # Insert message at the beginning (top) of the Text widget
+        log_text.config(state=tk.DISABLED)  # Prevent further modifications to preserve read-only state
 
 #url = "https://jsonplaceholder.typicode.com/posts/1"  # Example URL (replace with your URL)
 #make_http_request(url)
@@ -329,9 +353,9 @@ grid_cmd = tk.Frame(root, width=200, height=100, bg="lightgreen")
 grid_cmd2 = tk.Frame(root, width=200, height=100, bg="lightcoral")
 
 # Layout frames in the first row using grid
-grid_frame16.grid(row=0, column=0, padx=10, pady=10)
-grid_cmd.grid(row=0, column=1, padx=10, pady=10)
-grid_cmd2.grid(row=0, column=2, padx=10, pady=10)
+grid_frame16.grid(row=0, column=0, padx=1, pady=1)
+grid_cmd.grid(row=0, column=1, padx=1, pady=1)
+#grid_cmd2.grid(row=0, column=2, padx=10, pady=10)
 
 # Create a frame for the second row (single frame spanning full width)
 bottom = tk.Frame(root, width=600, height=150, bg="lightyellow")
@@ -348,8 +372,8 @@ root.grid_columnconfigure(2, weight=1)  # Allow column 2 to expand horizontally
 
 
 # Create a scrolled Text widget for displaying error messages
-log_text = scrolledtext.ScrolledText(bottom, width=120, height=10, wrap=tk.WORD)
-log_text.pack(padx=10, pady=10)
+log_text = scrolledtext.ScrolledText(bottom, width=120, height=6, wrap=tk.WORD)
+log_text.pack(padx=1, pady=1)
 log_text.config(state=tk.DISABLED)
 
 # Refresh button spanning 2 columns
@@ -361,35 +385,37 @@ log_text.config(state=tk.DISABLED)
 
 # Grids for the switch :
 title_r16 = tk.Label(grid_frame16, text="Relay 16", font=("Helvetica", 16, "bold"))
-title_r16.grid(row=0)
+title_r16.grid(row=0, columnspan=3)
 
 title_r8 = tk.Label(grid_frame16, text="Relay 8", font=("Helvetica", 16, "bold"))
-title_r8.grid(row=17)
+title_r8.grid(row=17, columnspan=3)
 
-title_cmd = tk.Label(grid_cmd, text="Command Set #1", font=("Helvetica", 16, "bold"))
-title_cmd.grid(row=1)
+title_cmd = tk.Label(grid_cmd, text="Cmds", font=("Helvetica", 16, "bold"))
+title_cmd.grid(row=1, columnspan=3)
 
-title_cmd2 = tk.Label(grid_cmd2, text="Command Set #2", font=("Helvetica", 16, "bold"))
-title_cmd2.grid(row=0)
+#title_cmd2 = tk.Label(grid_cmd2, text="Command Set #2", font=("Helvetica", 16, "bold"))
+#title_cmd2.grid(row=0)
 
 create_grid(relays_16.items(),16)
 create_grid(relays_8.items(),8)
 create_grid(cmds.items(),0)
-create_grid(cmds2.items(),1)
+#create_grid(cmds2.items(),1)
 clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
 clock.config(anchor="center")
-clock.grid(row=0, column=0)
+clock.grid(row=0, column=0,columnspan=3)
 #clock.pack(pady=20)
 
 # Quit button
-quit_button = tk.Button(grid_cmd, text="Quit", command=quit_application)
-quit_button.grid(row=16, column=0)
+quit_button = tk.Button(root, text="Quit", command=quit_application)
+quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
-initial=0
 
+processor_thread = threading.Thread(target=read_status)
+processor_thread.daemon = True
+processor_thread.start()
 
 update_time()
-read_status()
+#read_status()
 root.mainloop()

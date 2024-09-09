@@ -14,7 +14,7 @@ from tkinter import scrolledtext
 
 relays_16 = {
     'Relay-12': {
-        'name': ['USB HUB'],
+        'name': ['USB'],
         'url': "",
         'type': "SWITCH",
         'position': 0,
@@ -41,7 +41,7 @@ relays_16 = {
         },
 
     'Relay-09': {
-        'name': ['Dew Heater'],
+        'name': ['DH'],
         'url': "",
         'type': "SWITCH",
         'position': 3,
@@ -59,8 +59,8 @@ relays_16 = {
         },
 
     'Relay-01': {
-        'name': ['FW Stepper'],
-        'position': 5,
+        'name': ['Sfw'],
+        'position': 6,
         'type': "SWITCH",
         'url': "",
         'button': [],
@@ -68,16 +68,7 @@ relays_16 = {
         },
 
     'Relay-02': {
-        'name': ['C14 Stepper'],
-        'url': "",
-        'type': "SWITCH",
-        'position': 6,
-        'button': [],
-        'status': "OFF"
-        },
-
-    'Relay-03': {
-        'name': ['TS Stepper'],
+        'name': ['S14'],
         'url': "",
         'type': "SWITCH",
         'position': 7,
@@ -85,29 +76,56 @@ relays_16 = {
         'status': "OFF"
         },
 
-    'Relay-14': {
-        'name': ['Close Roof'],
+    'Relay-03': {
+        'name': ['Sts'],
         'url': "",
-        'type': "TEMP",
+        'type': "SWITCH",
         'position': 8,
         'button': [],
         'status': "OFF"
         },
 
-    'Relay-15': {
-        'name': ['Stop Roof'],
+    'Relay-04': {
+        'name': ['Lpi3'],
         'url': "",
-        'type': "TEMP",
+        'type': "SWITCH",
         'position': 9,
         'button': [],
         'status': "OFF"
         },
 
-    'Relay-16': {
-        'name': ['Open Roof'],
+    'Relay-05': {
+        'name': ['Pi3'],
+        'url': "",
+        'type': "SWITCH",
+        'position': 10,
+        'button': [],
+        'status': "OFF"
+        },
+
+    'Relay-14': {
+        'name': ['Clo'],
         'url': "",
         'type': "TEMP",
-        'position': 10,
+        'position': 12,
+        'button': [],
+        'status': "OFF"
+        },
+
+    'Relay-15': {
+        'name': ['Stp'],
+        'url': "",
+        'type': "TEMP",
+        'position': 13,
+        'button': [],
+        'status': "OFF"
+        },
+
+    'Relay-16': {
+        'name': ['Opn'],
+        'url': "",
+        'type': "TEMP",
+        'position': 14,
         'button': [],
         'status': "OFF"
         }
@@ -115,51 +133,57 @@ relays_16 = {
 
 relays_8 = {
     'Relay1': {
-        'name': ['light'],
-        'position': 0,
+        'name': ['lgt'],
+        'position': 5,
         'button': [],
         'addr': 1,
-        'status': "OFF"
+        'status': "OFF",
+        'config': "NO" # normally open
         },
 
     'Relay2': {
-        'name': ['pilier'],
-        'position': 1,
+        'name': ['pil'],
+        'position': 0,
         'button': [],
         'addr': 2,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay3': {
-        'name': ['camera'],
-        'position': 2,
+        'name': ['cam'],
+        'position': 3,
         'button': [],
         'addr': 3,
-        'status': "OFF"
+        'status': "OFF",
+        'config': "NO" # normally open
         },
 
     'Relay4': {
-        'name': ['Prises N'],
-        'position': 3,
+        'name': ['PrN'],
+        'position': 4,
         'button': [],
         'addr': 4,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay5': {
-        'name': ['Prises S (Toit)'],
-        'position': 4,
+        'name': ['PrS'],
+        'position': 2,
         'button': [],
         'addr': 5,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay6': {
-        'name': ['Relay16'],
-        'position': 5,
+        'name': ['R16'],
+        'position': 1,
         'button': [],
         'addr': 6,
-        'status': "OFF"
+        'status': "ON",
+        'config': "NC" # normally closed
         },
 
     'Relay7': {
@@ -182,8 +206,8 @@ relays_8 = {
 
 cmds = {
     'synceq8': {
-        'name': ['Sync EQ8'],
-        'position': 1,
+        'name': ['SyncEQ8'],
+        'position': 3,
         'button': [],
         'cmd': ["olm_in_sync_eq8_time"],
         'status': -1,
@@ -192,8 +216,8 @@ cmds = {
         },
 
     'movecover': {
-        'name': ['Close Cover','Open Cover'],
-        'position': 2,
+        'name': ['Cover1','Cover0'],
+        'position': 0,
         'button': [],
         'cmd': ['closecov','opencov'],
         'status': 0,
@@ -203,8 +227,8 @@ cmds = {
         },
 
     'movebath': {
-        'name': ['Close Bath','Open Bath'],
-        'position': 3,
+        'name': ['Bath1','Bath0'],
+        'position': 1,
         'button': [],
         'cmd': ['closebat','openbat'],
         'status': 0,
@@ -214,8 +238,8 @@ cmds = {
         },
 
     'cycle qhy': {
-        'name': ['Cycle QHY'],
-        'position': 4,
+        'name': ['QHYCyc'],
+        'position': 8,
         'button': [],
         'cmd': ['olm_in_cycle qhy'],
         'status': 0,
@@ -224,7 +248,7 @@ cmds = {
         },
 
     'cycle eq8': {
-        'name': ['Cycle EQ8'],
+        'name': ['EQ8Cyc'],
         'position': 5,
         'button': [],
         'cmd': ['olm_in_cycle eq8'],
@@ -234,7 +258,7 @@ cmds = {
         },
 
     'cycle ccd': {
-        'name': ['Cycle CCD'],
+        'name': ['CCDcyc'],
         'position': 6,
         'button': [],
         'cmd': ['olm_in_cycle p1'],
@@ -244,7 +268,7 @@ cmds = {
         },
 
     'cycle fw': {
-        'name': ['Cycle fw'],
+        'name': ['fwCyc'],
         'position': 7,
         'button': [],
         'cmd': ['olm_in_cycle fw'],
@@ -254,8 +278,8 @@ cmds = {
         },
 
     'cycle indi': {
-        'name': ['Cycle indi'],
-        'position': 8,
+        'name': ['indiCyc'],
+        'position': 2,
         'button': [],
         'cmd': ['olm_in_cycle indiserver'],
         'status': 0,
@@ -264,7 +288,7 @@ cmds = {
         },
 
     'Reboot oid': {
-        'name': ['Reboot oid'],
+        'name': ['OidR'],
         'position': 9,
         'button': [],
         'cmd': ['sudo reboot'],
@@ -274,8 +298,8 @@ cmds = {
         },
 
     'Shutdown oid': {
-        'name': ['Shutdown oid'],
-        'position': 9,
+        'name': ['Oshut'],
+        'position': 10,
         'button': [],
         'cmd': ['olm_shutdown_indihost'],
         'status': 0,
@@ -285,12 +309,22 @@ cmds = {
 
 
     'Full shutdown': {
-        'name': ['Full Shutdown'],
-        'position': 10,
+        'name': ['FShut'],
+        'position': 11,
         'button': [],
         'cmd': ['olm_session_shutdown'],
         'status': 0,
         'remote': False,
+        'confirm': True
+        },
+
+    'reinit EQ8 park West': {
+        'name': ['ParkRst'],
+        'position': 4,
+        'button': [],
+        'cmd': ['olm_in_eq8_reinitpark west'],
+        'status': -1,
+        'remote': True,
         'confirm': True
         },
     }
