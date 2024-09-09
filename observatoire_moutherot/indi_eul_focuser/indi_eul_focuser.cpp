@@ -1,4 +1,10 @@
 #include <cstring>
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <cstring>
+#include <unistd.h>  // For close()
+#include <arpa/inet.h>  // For socket functions
 
 #include <wiringPi.h>
 #include "libindi/indicom.h"
@@ -30,7 +36,7 @@ EulFocuser::EulFocuser()
     setSupportedConnections(CONNECTION_NONE);
 
     // And here we tell the base class about our focuser's capabilities.
-    SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABORT);
+    SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 }
 
 void EulFocuser::udp_listener(int port) {
@@ -206,6 +212,16 @@ bool EulFocuser::Handshake()
 
     // TODO: Any initial communciation needed with our focuser, we have an active
     // connection.
+    //
+    // Start the UDP listener thread 
+    std::thread listener_thread(udp_listener, 2345);
+
+    // Start the data processing thread
+    std::thread processor_thread(process_data);
+
+    // Wait for both threads to finish (they won’t, because of the infinite loops)
+    listener_thread.join();
+    processor_thread.join();
 
     return true;
 }
