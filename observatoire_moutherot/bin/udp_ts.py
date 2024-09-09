@@ -18,6 +18,7 @@ OUTWARDS=1
 INWARDS=-1
 backlash=None
 lock = threading.Lock()
+stdscr=None
 
 def sign(x):
     return (x > 0) - (x < 0)
@@ -59,12 +60,12 @@ def get_usteps_from_dist(dist,rate):
 
 def goto(target, usteps, direction): # direction = INWARDS (-1) or OUTWARDS (+1)
     global backlash, shared_final, usteps_per_um, accuracy
-    if target > 10.5:
+    if target > 9.1:
         errprint("Goto : max outfocus reached")
-        target =10.5
-    if target < 1.5:
+        target=9.1
+    if target < 0.1:
         errprint("Goto : min backfocus reached")
-        target =1.5
+        target=0.1
 
     maxmove=60
     if usteps==0:
@@ -120,8 +121,8 @@ def do_move(usteps,direction):
     GPIO.output(o_enable_c14,GPIO.HIGH)
     GPIO.output(o_enable_c14,GPIO.LOW)
 
-def process_data():
-    global shared_final, keycode
+def process_data(event):
+    global shared_final, keycode, stdscr
     global backlash, usteps_per_um, delay_step1, delay_step2,accuracy
     backlash=150 # unit is ustep
     fdratio=8
@@ -131,7 +132,7 @@ def process_data():
     #accuracy = 0.005
     #udpsocket=init_listen_udp(2345)
     logmsg="ready"
-    stdscr = curses.initscr()
+    #stdscr = curses.initscr()
     try:
         stdscr.curs_set(False)
         curses.curs_set(False)
@@ -164,7 +165,6 @@ def process_data():
     #o_dir_c14=19
     #o_enable_c14=13
 
-    GPIO.setmode(GPIO.BCM)
 
     #
     #
@@ -182,14 +182,7 @@ def process_data():
     GPIO.output(o_dir_c14,GPIO.LOW)
     GPIO.output(o_enable_c14,GPIO.HIGH)
 
-    #
-    #
-    # saving term settings
-    #
-    fd = sys.stdin.fileno()
-    initial_settings = termios.tcgetattr(fd)
-
-    #
+        #
     # Init No key press
     #
     keycode = None
@@ -219,14 +212,8 @@ def process_data():
             step_pos=0
             ustep_count=0
         elif keycode==3:
-            termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
-            curses.nocbreak();
-            stdscr.keypad(0);
-            curses.echo()
-            curses.endwin()
-            GPIO.cleanup()
             #pwr_stepper(ts_drv_addr, OFF)
-            event.set()
+            event.set() # telling everybody to vacate
             sys.exit()
 
             break
@@ -271,6 +258,17 @@ if __name__ == "__main__":
 #
 #
 #
+
+#
+    #
+    # saving term settings
+    #
+    fd = sys.stdin.fileno()
+    initial_settings = termios.tcgetattr(fd)
+    stdscr = curses.initscr()
+    GPIO.setmode(GPIO.BCM)
+
+
     # Start the UDP listener thread
     event=threading.Event()
     listener_thread = threading.Thread(target=udp_update_pos,args=(event,))
@@ -282,14 +280,21 @@ if __name__ == "__main__":
     keypress_thread.start()
 
     # Start the data processing thread
-    processor_thread = threading.Thread(target=process_data)
+    processor_thread = threading.Thread(target=process_data,args=(event,))
     processor_thread.daemon = True
     processor_thread.start()
 
 #    _thread.start_new_thread(keypress, ())
 
     # Keep the main thread alive
-    while True:
+    while not event.is_set():
         time.sleep(1)
+
+    termios.tcsetattr(fd, termios.TCSADRAIN, initial_settings)
+    curses.nocbreak();
+    stdscr.keypad(0);
+    curses.echo()
+    curses.endwin()
+    GPIO.cleanup()
 
     #pwr_stepper(ts_drv_addr, OFF)
