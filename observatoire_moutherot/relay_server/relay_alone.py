@@ -348,9 +348,10 @@ root = tk.Tk()
 root.title("Obs Moutherot control")
 
 # Create three frames for the first row (three vertical frames)
-grid_frame16 = tk.Frame(root, width=200, height=100, bg="lightblue")
-grid_cmd = tk.Frame(root, width=200, height=100, bg="lightgreen")
-grid_cmd2 = tk.Frame(root, width=200, height=100, bg="lightcoral")
+#grid_frame16 = tk.Frame(root, width=200, height=100, bg="lightblue")
+grid_frame16 = tk.Frame(root, width=200, height=100)
+grid_cmd = tk.Frame(root, width=200, height=100)
+grid_cmd2 = tk.Frame(root, width=200, height=100)
 
 # Layout frames in the first row using grid
 grid_frame16.grid(row=0, column=0, padx=1, pady=1)
