@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import sys
+sys.path.append('/home/fmeyer//git/dulleutil/observatoire_moutherot/relay_server/')
 import tkinter as tk
 from tkinter import messagebox
 import requests
@@ -71,6 +72,7 @@ def update_time():
 
 def get_relay8_status():
     try:
+        # print(relay8_read)
         status=make_http_request(relay8_read).text.splitlines()
     except:
         add_log(" Relay8 request failed (%s)"%relay8_read)
@@ -129,6 +131,7 @@ def get_relay16_status():
         print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
 
 def make_http_request(url):
+    # sys.stderr.write(url+"\n")
     try:
         # Send GET request to the specified URL
         response = requests.get(url, timeout=(.5,.5))
@@ -277,7 +280,7 @@ def create_grid(items, rset):
 
     if rset==0:
         frame=grid_cmd
-        incpos=1 # that's 1 for the title
+        incpos=2 # that's 1 for the title, 2 for time
 
     if rset==1:
         frame=grid_cmd2
@@ -289,26 +292,36 @@ def create_grid(items, rset):
 
             # Create button and bind the corresponding function
             if rset==16:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
+                relay['button'] = tk.Button(frame, text=button_text, width=4, height=2,
                                fg='red' if relay['status']=="OFF" else 'green',
                                command=lambda relais=relay: callback16(relais),
                                             font=(font, fontsize))
+                row=incpos+int((relay['position'])/3)
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                relay['button'].grid(row=row, column=relay['position']%3)
             if rset==8:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
+                relay['button'] = tk.Button(frame, text=button_text, width=4, height=2,
                                fg='red' if (relay['status']=="OFF" and relay['config']=="NO" or
                                             relay['status']=="ON" and relay['config']=="NC") else 'green',
                                command=lambda relais=relay: callback8(relais),
                                             font=(font, fontsize))
+                row=incpos+int((relay['position'])/3)
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                relay['button'].grid(row=row, column=relay['position']%3) 
+
             if rset==0 or rset==1:
-                relay['button'] = tk.Button(frame, text=button_text, width=20, height=2,
+                relay['button'] = tk.Button(frame, text=button_text, width=6, height=2,
                                fg='red' if relay['status']!=0 else 'green',
                                command=lambda cmd=relay['cmd'][relay['status']],
                                             relais=relay: remote_cmd(relais, cmd),
                                             font=(font, fontsize))
 
-            row=relay['position']+incpos
-            #relay['button'].grid(row=row, column=0, padx=1, pady=1)
-            relay['button'].grid(row=row, column=0)
+                row=incpos+int((relay['position'])/3)
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                relay['button'].grid(row=row, column=relay['position']%3) 
+                #row=relay['position']+incpos
+                #relay['button'].grid(row=row, column=0, padx=1, pady=1)
+                #relay['button'].grid(row=row, column=0)
 
             buttons.append(relay['button'])
 
@@ -335,9 +348,9 @@ grid_cmd = tk.Frame(root, width=200, height=100, bg="lightgreen")
 grid_cmd2 = tk.Frame(root, width=200, height=100, bg="lightcoral")
 
 # Layout frames in the first row using grid
-grid_frame16.grid(row=0, column=0, padx=10, pady=10)
-grid_cmd.grid(row=0, column=1, padx=10, pady=10)
-grid_cmd2.grid(row=0, column=2, padx=10, pady=10)
+grid_frame16.grid(row=0, column=0, padx=1, pady=1)
+grid_cmd.grid(row=0, column=1, padx=1, pady=1)
+#grid_cmd2.grid(row=0, column=2, padx=10, pady=10)
 
 # Create a frame for the second row (single frame spanning full width)
 bottom = tk.Frame(root, width=600, height=150, bg="lightyellow")
@@ -367,29 +380,29 @@ log_text.config(state=tk.DISABLED)
 
 # Grids for the switch :
 title_r16 = tk.Label(grid_frame16, text="Relay 16", font=("Helvetica", 16, "bold"))
-title_r16.grid(row=0)
+title_r16.grid(row=0, columnspan=3)
 
 title_r8 = tk.Label(grid_frame16, text="Relay 8", font=("Helvetica", 16, "bold"))
-title_r8.grid(row=17)
+title_r8.grid(row=17, columnspan=3)
 
-title_cmd = tk.Label(grid_cmd, text="Command Set #1", font=("Helvetica", 16, "bold"))
-title_cmd.grid(row=1)
+title_cmd = tk.Label(grid_cmd, text="Cmds", font=("Helvetica", 16, "bold"))
+title_cmd.grid(row=1, columnspan=3)
 
-title_cmd2 = tk.Label(grid_cmd2, text="Command Set #2", font=("Helvetica", 16, "bold"))
-title_cmd2.grid(row=0)
+#title_cmd2 = tk.Label(grid_cmd2, text="Command Set #2", font=("Helvetica", 16, "bold"))
+#title_cmd2.grid(row=0)
 
 create_grid(relays_16.items(),16)
 create_grid(relays_8.items(),8)
 create_grid(cmds.items(),0)
-create_grid(cmds2.items(),1)
+#create_grid(cmds2.items(),1)
 clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
 clock.config(anchor="center")
-clock.grid(row=0, column=0)
+clock.grid(row=0, column=0,columnspan=3)
 #clock.pack(pady=20)
 
 # Quit button
-quit_button = tk.Button(grid_cmd, text="Quit", command=quit_application)
-quit_button.grid(row=16, column=0)
+quit_button = tk.Button(root, text="Quit", command=quit_application)
+quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
