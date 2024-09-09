@@ -206,7 +206,7 @@ relays_8 = {
 
 cmds = {
     'synceq8': {
-        'name': ['Sync EQ8'],
+        'name': ['SyncEQ8'],
         'position': 1,
         'button': [],
         'cmd': ["olm_in_sync_eq8_time"],
@@ -216,7 +216,7 @@ cmds = {
         },
 
     'movecover': {
-        'name': ['Close Cover','Open Cover'],
+        'name': ['Cover1','Cover0'],
         'position': 2,
         'button': [],
         'cmd': ['closecov','opencov'],
@@ -227,7 +227,7 @@ cmds = {
         },
 
     'movebath': {
-        'name': ['Close Bath','Open Bath'],
+        'name': ['Bath1','Bath0'],
         'position': 3,
         'button': [],
         'cmd': ['closebat','openbat'],
@@ -238,7 +238,7 @@ cmds = {
         },
 
     'cycle qhy': {
-        'name': ['Cycle QHY'],
+        'name': ['QHYCyc'],
         'position': 4,
         'button': [],
         'cmd': ['olm_in_cycle qhy'],
@@ -248,7 +248,7 @@ cmds = {
         },
 
     'cycle eq8': {
-        'name': ['Cycle EQ8'],
+        'name': ['EQ8Cyc'],
         'position': 5,
         'button': [],
         'cmd': ['olm_in_cycle eq8'],
@@ -258,7 +258,7 @@ cmds = {
         },
 
     'cycle ccd': {
-        'name': ['Cycle CCD'],
+        'name': ['CCDcyc'],
         'position': 6,
         'button': [],
         'cmd': ['olm_in_cycle p1'],
@@ -268,7 +268,7 @@ cmds = {
         },
 
     'cycle fw': {
-        'name': ['Cycle fw'],
+        'name': ['fwCyc'],
         'position': 7,
         'button': [],
         'cmd': ['olm_in_cycle fw'],
@@ -278,7 +278,7 @@ cmds = {
         },
 
     'cycle indi': {
-        'name': ['Cycle indi'],
+        'name': ['indiCyc'],
         'position': 8,
         'button': [],
         'cmd': ['olm_in_cycle indiserver'],
@@ -288,7 +288,7 @@ cmds = {
         },
 
     'Reboot oid': {
-        'name': ['Reboot oid'],
+        'name': ['OidR'],
         'position': 9,
         'button': [],
         'cmd': ['sudo reboot'],
@@ -298,7 +298,7 @@ cmds = {
         },
 
     'Shutdown oid': {
-        'name': ['Shutdown oid'],
+        'name': ['Oshut'],
         'position': 10,
         'button': [],
         'cmd': ['olm_shutdown_indihost'],
@@ -309,7 +309,7 @@ cmds = {
 
 
     'Full shutdown': {
-        'name': ['Full Shutdown'],
+        'name': ['FShut'],
         'position': 11,
         'button': [],
         'cmd': ['olm_session_shutdown'],
@@ -319,7 +319,7 @@ cmds = {
         },
 
     'reinit EQ8 park West': {
-        'name': ['reInit Park Info'],
+        'name': ['ParkRst'],
         'position': 12,
         'button': [],
         'cmd': ['olm_in_eq8_reinitpark west'],
