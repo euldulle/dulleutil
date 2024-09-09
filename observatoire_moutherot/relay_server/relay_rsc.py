@@ -207,7 +207,7 @@ relays_8 = {
 cmds = {
     'synceq8': {
         'name': ['SyncEQ8'],
-        'position': 1,
+        'position': 3,
         'button': [],
         'cmd': ["olm_in_sync_eq8_time"],
         'status': -1,
@@ -217,7 +217,7 @@ cmds = {
 
     'movecover': {
         'name': ['Cover1','Cover0'],
-        'position': 2,
+        'position': 0,
         'button': [],
         'cmd': ['closecov','opencov'],
         'status': 0,
@@ -228,7 +228,7 @@ cmds = {
 
     'movebath': {
         'name': ['Bath1','Bath0'],
-        'position': 3,
+        'position': 1,
         'button': [],
         'cmd': ['closebat','openbat'],
         'status': 0,
@@ -239,7 +239,7 @@ cmds = {
 
     'cycle qhy': {
         'name': ['QHYCyc'],
-        'position': 4,
+        'position': 8,
         'button': [],
         'cmd': ['olm_in_cycle qhy'],
         'status': 0,
@@ -279,7 +279,7 @@ cmds = {
 
     'cycle indi': {
         'name': ['indiCyc'],
-        'position': 8,
+        'position': 2,
         'button': [],
         'cmd': ['olm_in_cycle indiserver'],
         'status': 0,
@@ -320,7 +320,7 @@ cmds = {
 
     'reinit EQ8 park West': {
         'name': ['ParkRst'],
-        'position': 12,
+        'position': 4,
         'button': [],
         'cmd': ['olm_in_eq8_reinitpark west'],
         'status': -1,
