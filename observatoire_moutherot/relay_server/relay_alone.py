@@ -11,8 +11,11 @@ import asyncio
 from time import sleep
 import paramiko
 import socket
+import threading
 from relay_rsc import *
 from datetime import datetime  # Import datetime module for timestamp
+
+lock = threading.Lock()
 
 class SSHClient:
     def __init__(self, host, port, username, private_key_file):
@@ -192,20 +195,21 @@ def read_status():
     pollper=5           # poll every 5 seconds
     logfreq=60          # log every 60 seconds
     maxcount=logfreq/pollper
-
-    call_counter = (call_counter+1) % maxcount
-    if call_counter == 1:
-        add_log("Mark")
-    get_relay8_status()
-    get_relay16_status()
-    get_cmd_status()
-    try:
-        if not ssh_client.transport.is_active():
+    while True:
+        call_counter = (call_counter+1) % maxcount
+        if call_counter == 1:
+            add_log("Mark")
+        get_relay8_status()
+        get_relay16_status()
+        get_cmd_status()
+        try:
+            if not ssh_client.transport.is_active():
+                ssh_client.connect()
+        except:
             ssh_client.connect()
-    except:
-        ssh_client.connect()
 
-    root.after(1000*pollper, read_status)
+        #root.after(1000*pollper, read_status)
+        sleep(pollper)
 
 # Define internal functions to be executed for each cell
 def callback8( relais):
@@ -326,13 +330,14 @@ def create_grid(items, rset):
             buttons.append(relay['button'])
 
 def add_log(message):
-    global log_text
+    global log_text,lock
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp in desired format
     formatted_message = f"{timestamp} {message}"  # Concatenate timestamp with message
-    log_text.config(state=tk.NORMAL)  # Allow modifications to the Text widget
-    log_text.insert(1.0, formatted_message + '\n')  # Insert message at the beginning (top) of the Text widget
-    log_text.config(state=tk.DISABLED)  # Prevent further modifications to preserve read-only state
+    with lock:
+        log_text.config(state=tk.NORMAL)  # Allow modifications to the Text widget
+        log_text.insert(1.0, formatted_message + '\n')  # Insert message at the beginning (top) of the Text widget
+        log_text.config(state=tk.DISABLED)  # Prevent further modifications to preserve read-only state
 
 #url = "https://jsonplaceholder.typicode.com/posts/1"  # Example URL (replace with your URL)
 #make_http_request(url)
@@ -367,8 +372,8 @@ root.grid_columnconfigure(2, weight=1)  # Allow column 2 to expand horizontally
 
 
 # Create a scrolled Text widget for displaying error messages
-log_text = scrolledtext.ScrolledText(bottom, width=120, height=10, wrap=tk.WORD)
-log_text.pack(padx=10, pady=10)
+log_text = scrolledtext.ScrolledText(bottom, width=120, height=6, wrap=tk.WORD)
+log_text.pack(padx=1, pady=1)
 log_text.config(state=tk.DISABLED)
 
 # Refresh button spanning 2 columns
@@ -406,9 +411,11 @@ quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
-initial=0
 
+processor_thread = threading.Thread(target=read_status)
+processor_thread.daemon = True
+processor_thread.start()
 
 update_time()
-read_status()
+#read_status()
 root.mainloop()
