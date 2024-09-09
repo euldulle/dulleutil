@@ -15,11 +15,18 @@
 #define INFOCUS (0)
 #define OUTFOCUS (1)
 
-std::string shared_final;  // Shared variable
+std::float eul_position;  // Shared variable
 std::mutex data_mutex;  // Mutex to protect shared data
 
 // We declare an auto pointer to EulFocuser.
 static std::unique_ptr<EulFocuser> eulFocuser(new EulFocuser());
+
+float EulFocuser::getPosition()
+{
+    std::lock_guard<std::mutex> lock(data_mutex);
+    return eul_position;
+    }
+}
 
 EulFocuser::EulFocuser()
 {
@@ -64,11 +71,11 @@ void EulFocuser::udp_listener(int port) {
         int bytes_received = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, &addr_len);
         if (bytes_received > 0) {
             buffer[bytes_received] = '\0';  // Null-terminate the string
-            std::string message(buffer);
+            std::stringstream ss(buffer);
 
             // Lock the mutex before updating shared_data
             std::lock_guard<std::mutex> lock(data_mutex);
-            shared_data = message;
+            ss >> eul_position; 
             std::cout << "Received message: " << message << std::endl;
         }
     }
