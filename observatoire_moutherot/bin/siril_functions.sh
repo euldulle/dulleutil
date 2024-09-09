@@ -397,11 +397,13 @@ ENDMKMASTER
 srl_wd(){
     if test -n "$1"; then
         if test -d "$1"; then
-            export SRLWD="$1"
+            realdir=$(readlink -f $1)
+
+            export SRLWD="$realdir"
             if ! test -f $SIRILRC; then
-                echo export SRLWD=$1 >$SIRILRC;
+                echo export SRLWD=$realdir >$SIRILRC;
             else
-                sed  -i 's@\(^export SRLWD=\).*@\1'$1'@' $SIRILRC
+                sed  -i 's@\(^export SRLWD=\).*@\1'$realdir'@' $SIRILRC
             fi
         fi
     else
