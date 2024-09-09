@@ -19,12 +19,17 @@ INWARDS=-1
 backlash=None
 lock = threading.Lock()
 stdscr=None
+logfile=None
+minFocus=0.1
+maxFocus=9.1
+centerFocus=(maxFocus+minFocus)/2
 
 def sign(x):
     return (x > 0) - (x < 0)
 
 def errprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs,flush=True)
+    global logfile
+    print(*args, file=logfile, **kwargs,flush=True)
 
 def init_listen_udp(port):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,31 +58,31 @@ def keypress(event):
 
 def get_usteps_from_dist(dist,rate):
     # dist is in mm
-    # rate is in usteps per mm
+    # rate is in usteps per um
     #
     # return value is in usteps
     return abs(int(ceil(dist)*rate))
 
-def goto(target, usteps, direction): # direction = INWARDS (-1) or OUTWARDS (+1)
-    global backlash, shared_final, usteps_per_um, accuracy
-    if target > 9.1:
+def goto(target): # direction = INWARDS (-1) or OUTWARDS (+1)
+    global backlash, shared_final, usteps_per_um, accuracy, maxFocus, minFocus
+    if target > maxFocus:
         errprint("Goto : max outfocus reached")
-        target=9.1
-    if target < 0.1:
+        target=maxFocus
+    if target < minFocus:
         errprint("Goto : min backfocus reached")
-        target=0.1
-
+        target=minFocus
     maxmove=60
-    if usteps==0:
-        return
-    # initial,large,small,status=udp_update_pos()
     count=0
+    with lock:
+        current=shared_final
+    delta_dist=target-current
+    direction=sign(delta_dist)
+    usteps=get_usteps_from_dist(delta_dist,usteps_per_um) # corresponding nr of usteps
+
     try:
         usteps=backlash*(direction!=goto.direction)+usteps
     except:
         goto.direction=direction
-    with lock:
-        current=shared_final
 
     errprint("Goto : target %.3f current %.3f acc %.3f"%(target,shared_final,accuracy))
     while(abs(target-current)>accuracy and count<maxmove):
@@ -189,7 +194,6 @@ def process_data(event):
 
     while not event.is_set():
         delta_dist=float(step_scale[step_range]) # requested delta_dist in um
-        delta_usteps=get_usteps_from_dist(delta_dist,usteps_per_um) # corresponding nr of usteps
         # current,large,small,status=udp_update_pos()
         with lock:
             current=shared_final
@@ -203,15 +207,14 @@ def process_data(event):
                     step_range=max(0,step_range-1)
                 elif keycode==68: # left inwards
                     target=current-delta_dist/1000
-                    goto(target,delta_usteps, INWARDS)
+                    goto(target)
                 elif keycode==67: # left
                     target=current+delta_dist/1000 # target in mm
-                    goto(target,delta_usteps, OUTWARDS)
+                    goto(target)
                     #logmsg="T%.3f"%target
-        elif keycode==122:
-            step_pos=0
-            ustep_count=0
-        elif keycode==3:
+        elif keycode==122: # z : goto middle of the focusing range
+            goto(centerFocus)
+        elif keycode==3 or keycode == 113 or keycode == 81: # ctrl-c or q or Q
             #pwr_stepper(ts_drv_addr, OFF)
             event.set() # telling everybody to vacate
             sys.exit()
@@ -237,6 +240,11 @@ def process_data(event):
 
 # Main function
 if __name__ == "__main__":
+    try:
+        logfile=open(sys.argv[1],"w")
+    except:
+        logfile=open("/dev/null","w")
+    #
     #
     #
     # Creating getch call
