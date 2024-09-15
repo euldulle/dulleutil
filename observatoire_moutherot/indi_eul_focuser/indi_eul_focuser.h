@@ -35,6 +35,7 @@ private:
     virtual bool Disconnect();
     bool sendCommand(const char * cmd, char * res = nullptr, bool silent = false, int nret = 0);
     static const uint8_t EF_TIMEOUT { 3 };
+    static void udp_listener(int port);
 
    typedef struct {
         int nr;
@@ -43,6 +44,11 @@ private:
         } gpin;
 
     gpin step, dir, enable;
+
+    static float eul_position;  // Shared variable
+    static int udp_socket;
+    static int udp_port;
+    static void process_data();
 
     uint32_t usteps_per_mm=470;
     uint32_t usteps_per_step=32;
@@ -61,4 +67,6 @@ private:
     int gread(gpin *pin);
     bool gtoggle(gpin *pin);
     bool do_move(int newdir, uint32_t microns);
+    float getPosition();
+
 };

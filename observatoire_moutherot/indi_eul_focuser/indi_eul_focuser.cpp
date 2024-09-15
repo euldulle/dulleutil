@@ -15,18 +15,12 @@
 #define INFOCUS (0)
 #define OUTFOCUS (1)
 
-std::float eul_position;  // Shared variable
 std::mutex data_mutex;  // Mutex to protect shared data
 
 // We declare an auto pointer to EulFocuser.
 static std::unique_ptr<EulFocuser> eulFocuser(new EulFocuser());
-
-float EulFocuser::getPosition()
-{
-    std::lock_guard<std::mutex> lock(data_mutex);
-    return eul_position;
-    }
-}
+float EulFocuser::eul_position;
+int EulFocuser::udp_socket;
 
 EulFocuser::EulFocuser()
 {
@@ -39,8 +33,13 @@ EulFocuser::EulFocuser()
     SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 }
 
+float EulFocuser::getPosition()
+{
+    std::lock_guard<std::mutex> lock(data_mutex);
+    return eul_position;
+}
+
 void EulFocuser::udp_listener(int port) {
-    int udp_socket;
     sockaddr_in server_addr;
     char buffer[32];
     
@@ -76,7 +75,7 @@ void EulFocuser::udp_listener(int port) {
             // Lock the mutex before updating shared_data
             std::lock_guard<std::mutex> lock(data_mutex);
             ss >> eul_position; 
-            std::cout << "Received message: " << message << std::endl;
+            std::cout << "Received message: " << buffer << std::endl;
         }
     }
 
@@ -88,9 +87,10 @@ void EulFocuser::process_data() {
         {
             // Lock the mutex before reading shared_data
             std::lock_guard<std::mutex> lock(data_mutex);
-            if (!shared_data.empty()) {
-                std::cout << "Processing data: " << shared_data << std::endl;
-            }
+            //if (!eul_position.empty()) {
+            std::cout << "Processing data: " << std::to_string(eul_position) << std::endl;
+            //}
+            
         }
         std::this_thread::sleep_for(std::chrono::seconds(1));  // Simulate processing delay
     }
@@ -250,10 +250,11 @@ IPState EulFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duration
     return IPS_OK;
 }
 
-IPState EulFocuser::MoveAbsFocuser(uint32_t targetTicks)
+IPState EulFocuser::MoveAbsFocuser(uint32_t targetPos)
 {
     // NOTE: This is needed if we do specify FOCUSER_CAN_ABS_MOVE
     // TODO: Actual code to move the focuser.
+    goto(targetPos);
     LOGF_INFO("MoveAbsFocuser: %d", targetTicks);
     return IPS_OK;
 }
