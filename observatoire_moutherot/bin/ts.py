@@ -121,7 +121,7 @@ def do_move():
     GPIO.output(o_enable_c14,GPIO.HIGH)
     GPIO.output(o_enable_c14,GPIO.LOW)
 
-pwr_stepper(ts_drv_addr, ON)
+#pwr_stepper(ts_drv_addr, ON)
 #
 #
 #
@@ -151,7 +151,7 @@ while True:
         curses.echo()
         curses.endwin()
         GPIO.cleanup()
-        pwr_stepper(ts_drv_addr, OFF)
+        #pwr_stepper(ts_drv_addr, OFF)
         sys.exit()
         break
 
@@ -170,4 +170,4 @@ while True:
 #    n=DateTime.now()
     time.sleep(0.01)
 
-pwr_stepper(ts_drv_addr, OFF)
+#pwr_stepper(ts_drv_addr, OFF)
