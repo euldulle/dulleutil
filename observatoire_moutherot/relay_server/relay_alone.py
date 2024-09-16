@@ -16,7 +16,7 @@ from relay_rsc import *
 from datetime import datetime  # Import datetime module for timestamp
 
 lock = threading.Lock()
-
+oidup=False
 class SSHClient:
     def __init__(self, host, port, username, private_key_file):
         self.host = host
@@ -29,6 +29,7 @@ class SSHClient:
         self.connect()
 
     def connect(self):
+        global oidup
         try:
             # Load SSH private key
             sock = socket.create_connection((self.host, self.port), timeout=1)
@@ -38,9 +39,11 @@ class SSHClient:
             self.client.connect(self.host, self.port, self.username, pkey=private_key,sock=sock)
             self.transport=self.client.get_transport()
             print(f"Connected to {self.host}")
+            oidup=True
 
         except:
-            add_log(f"ssh connect %s failed"%self.host)
+            add_log(f"ssh connect %s failed"%(self.host))
+            oidup=False
 
     def send_command(self, command):
         if self.transport and self.transport.is_active():
@@ -234,22 +237,32 @@ def callback16(relais):
     get_relay16_status()
 
 def get_cmd_status():
+    global oidup
+
     font='Helvetica'
     fontsize=10
     covstatus=ssh_client.send_command("gstatus")
-    if covstatus:
-        status=covstatus.strip().split()
-        cov=int(status[0])
-        bat=int(status[1])
+
+    for com in cmds:
+        cmds[com]['button'].config(state=tk.DISABLED if not oidup else tk.NORMAL)
+
+    if oidup:
+        if covstatus:
+            status=covstatus.strip().split()
+            cov=int(status[0])
+            bat=int(status[1])
+        else:
+            cov=-1
+            bat=-1
 
         other=bat # tricky trickster
         for com in cmds['movecover'],cmds['movebath']:
             com['status']=cov
-            com['button'].config(fg='red' if com['status'] == 'CLOSED' else 'green',
+            com['button'].config(fg='blue' if com['status'] == 'CLOSED' else 'green',
                                  text=com['name'][com['status']],
                                  command=lambda relais=com, cmd=com['cmd'][com['status']]:
                                  remote_cmd(relais, cmd),
-                                 state=tk.DISABLED if other == 1 else tk.NORMAL,
+                                 state=tk.DISABLED if (other == 1 or not covstatus) else tk.NORMAL,
                                  font=(font, fontsize))
             other=cov
             cov=bat
