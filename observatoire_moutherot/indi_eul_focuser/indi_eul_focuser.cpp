@@ -20,7 +20,6 @@ std::mutex data_mutex;  // Mutex to protect shared data
 // We declare an auto pointer to EulFocuser.
 static std::unique_ptr<EulFocuser> eulFocuser(new EulFocuser());
 float EulFocuser::eul_position;
-int EulFocuser::udp_socket;
 
 EulFocuser::EulFocuser()
 {
@@ -33,54 +32,79 @@ EulFocuser::EulFocuser()
     SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 }
 
-float EulFocuser::getPosition()
+void EulFocuser::readPosition()
 {
-    std::lock_guard<std::mutex> lock(data_mutex);
-    return eul_position;
+    char buffer[32];
+    sockaddr_in client_addr;
+    socklen_t addr_len = sizeof(client_addr);
+
+    int bytes_received = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, &addr_len);
+
+    if (bytes_received > 0) {
+        buffer[bytes_received] = '\0';  // Null-terminate the string
+        std::stringstream ss(buffer);
+
+        // Lock the mutex before updating shared_data
+        ss >> eul_position; 
+//        std::cout << "Received message: " << buffer << std::endl;
+//        fprintf(stderr,"Message received %s %.3f\n",buffer, eul_position);
+        //std::lock_guard<std::mutex> lock(data_mutex);
+    }
+    eul_position*=1000;
 }
 
-void EulFocuser::udp_listener(int port) {
+int EulFocuser::init_udp_listener(int port) {
     sockaddr_in server_addr;
-    char buffer[32];
-    
+    int udp_socket;
+
     // Create a UDP socket
-    udp_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    udp_socket= socket(AF_INET, SOCK_DGRAM, 0);
     if (udp_socket < 0) {
         std::cerr << "Failed to create socket" << std::endl;
-        return;
+        return false;
     }
 
     // Setup server address structure
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(port);
+    fprintf(stderr," going to be Listening for UDP messages on port %d.",port);
 
-    // Bind the socket to the port
     if (bind(udp_socket, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        std::cerr << "Failed to bind socket" << std::endl;
-        close(udp_socket);
-        return;
+        fprintf(stderr," Socket failed ");
+        return -1;
     }
-
-    std::cout << "Listening for UDP messages on port " << port << "..." << std::endl;
-
-    while (true) {
-        sockaddr_in client_addr;
-        socklen_t addr_len = sizeof(client_addr);
-        int bytes_received = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, &addr_len);
-        if (bytes_received > 0) {
-            buffer[bytes_received] = '\0';  // Null-terminate the string
-            std::stringstream ss(buffer);
-
-            // Lock the mutex before updating shared_data
-            std::lock_guard<std::mutex> lock(data_mutex);
-            ss >> eul_position; 
-            std::cout << "Received message: " << buffer << std::endl;
-        }
+    else{
+        fprintf(stderr," Socket ok ");
+        return udp_socket;
     }
-
-    close(udp_socket);  // Close the socket when done
 }
+
+//   void EulFocuser::udp_listener(int port) {
+//       sockaddr_in server_addr;
+//       char buffer[32];
+//
+//       std::cout << "Listening for UDP messages on port " << port << "..." << std::endl;
+//       fprintf(stderr," Listening for UDP messages on port %d.",port);
+//       fflush(stderr);
+//       //while (true) {
+//           sockaddr_in client_addr;
+//           socklen_t addr_len = sizeof(client_addr);
+//           int bytes_received = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, &addr_len);
+//           if (bytes_received > 0) {
+//               buffer[bytes_received] = '\0';  // Null-terminate the string
+//               std::stringstream ss(buffer);
+//
+//               // Lock the mutex before updating shared_data
+//               std::lock_guard<std::mutex> lock(data_mutex);
+//               ss >> eul_position; 
+//               std::cout << "Received message: " << buffer << std::endl;
+//               fprintf(stderr,"Message received %s\n",buffer);
+//           }
+//       //}
+//
+//       close(udp_socket);  // Close the socket when done
+//   }
 
 void EulFocuser::process_data() {
     while (true) {
@@ -121,6 +145,24 @@ bool EulFocuser::initProperties()
     // TODO: Add any custom properties you need here.
 
     addAuxControls();
+    addDebugControl();
+
+    // Set limits as per documentation
+    FocusAbsPosN[0].min  = 500;
+    FocusAbsPosN[0].max  = 9100;
+    FocusAbsPosN[0].step = 10;
+    strncpy(FocusRelPosN[0].label, "um", MAXINDILABEL);
+    strncpy(FocusAbsPosN[0].label, "um", MAXINDILABEL);
+    strncpy(FocusMaxPosN[0].label, "um", MAXINDILABEL);
+    FocusMaxPosN[0].value=9100;
+
+    FocusRelPosN[0].min  = 0;
+    FocusRelPosN[0].max  = 2000;
+    FocusRelPosN[0].step = 10;
+
+    FocusSpeedN[0].min  = 1;
+    FocusSpeedN[0].max  = 254;
+    FocusSpeedN[0].step = 10;
 
     return true;
 }
@@ -200,45 +242,26 @@ bool EulFocuser::saveConfigItems(FILE *fp)
     return true;
 }
 
-bool EulFocuser::Handshake()
-{
-    if (isSimulation())
-    {
-        LOGF_INFO("Connected successfuly to simulated %s.", getDeviceName());
-        return true;
-    }
-
-    // NOTE: PortFD is set by the base class.
-
-    // TODO: Any initial communciation needed with our focuser, we have an active
-    // connection.
-    //
-    // Start the UDP listener thread 
-    std::thread listener_thread(udp_listener, 2345);
-
-    // Start the data processing thread
-    std::thread processor_thread(process_data);
-
-    // Wait for both threads to finish (they won’t, because of the infinite loops)
-    listener_thread.join();
-    processor_thread.join();
-
-    return true;
-}
-
 void EulFocuser::TimerHit()
 {
     if (!isConnected())
         return;
 
+
     // TODO: Poll your device if necessary. Otherwise delete this method and it's
     // declaration in the header file.
+    readPosition();
+    //fprintf(stderr,"eulpos: %.3f\n",eul_position);
+    //fflush(stderr);
+    FocusAbsPosN[0].value = eul_position;
+    //FocusAbsPosN[0].value = 5000;
+    IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    LOG_INFO("timer hit");
+    //LOG_INFO("timer hit");
 
     // If you don't call SetTimer, we'll never get called again, until we disconnect
     // and reconnect.
-    //SetTimer(POLLMS);
+    SetTimer(0.01);
 }
 
 IPState EulFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
@@ -254,8 +277,8 @@ IPState EulFocuser::MoveAbsFocuser(uint32_t targetPos)
 {
     // NOTE: This is needed if we do specify FOCUSER_CAN_ABS_MOVE
     // TODO: Actual code to move the focuser.
-    goto(targetPos);
-    LOGF_INFO("MoveAbsFocuser: %d", targetTicks);
+    //eul_goto(targetPos);
+    LOGF_INFO("MoveAbsFocuser: %d", targetPos);
     return IPS_OK;
 }
 
@@ -277,7 +300,20 @@ bool EulFocuser::Connect()
         DEBUG(INDI::Logger::DBG_ERROR, "Failed to connect");
         return false;
     }
+    //std::thread listener_thread(udp_listener, 2345);
+    DEBUG(INDI::Logger::DBG_SESSION, "starting listener ");
+    udp_socket=init_udp_listener(2345);
 
+    // Start the data processing thread
+    //std::thread processor_thread(process_data);
+    //DEBUG(INDI::Logger::DBG_SESSION, "starting processor ");
+
+    // Wait for both threads to finish (they won’t, because of the infinite loops)
+    //listener_thread.join();
+    //processor_thread.join();
+
+
+    SetTimer(0.01);
     DEBUG(INDI::Logger::DBG_SESSION, "Eul Focuser.");
     return true;
 }

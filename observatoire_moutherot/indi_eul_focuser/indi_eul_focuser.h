@@ -23,8 +23,6 @@ public:
 protected:
     virtual bool saveConfigItems(FILE *fp) override;
 
-    virtual bool Handshake() override;
-
     virtual IPState MoveFocuser(FocusDirection dir, int speed, uint16_t duration);
     virtual IPState MoveAbsFocuser(uint32_t targetTicks);
     virtual IPState MoveRelFocuser(FocusDirection dir, uint32_t ticks);
@@ -35,6 +33,8 @@ private:
     virtual bool Disconnect();
     bool sendCommand(const char * cmd, char * res = nullptr, bool silent = false, int nret = 0);
     static const uint8_t EF_TIMEOUT { 3 };
+    int udp_socket;
+    static int init_udp_listener(int port);
     static void udp_listener(int port);
 
    typedef struct {
@@ -46,7 +46,6 @@ private:
     gpin step, dir, enable;
 
     static float eul_position;  // Shared variable
-    static int udp_socket;
     static int udp_port;
     static void process_data();
 
@@ -67,6 +66,6 @@ private:
     int gread(gpin *pin);
     bool gtoggle(gpin *pin);
     bool do_move(int newdir, uint32_t microns);
-    float getPosition();
+    void readPosition(void);
 
 };
