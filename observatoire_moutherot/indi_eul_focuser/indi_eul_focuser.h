@@ -35,6 +35,7 @@ private:
     static const uint8_t EF_TIMEOUT { 3 };
     int udp_socket;
     static int init_udp_listener(int port);
+    static uint32_t get_usteps_from_dist(int32_t dist,uint32_t rate);
     static void udp_listener(int port);
 
    typedef struct {
@@ -49,13 +50,19 @@ private:
     static int udp_port;
     static void process_data();
 
+    int  last_direction=1;
     uint32_t usteps_per_mm=470;
     uint32_t usteps_per_step=32;
     uint32_t delay_step=400;
     uint32_t backlash[2]={
-        200, // [0] = backlash when going from OUTFOCUS to INFOCUS
-        240  // [1] = backlash when going from INFOCUS to OUTFOCUS
+        100, // [0] = backlash when going from OUTFOCUS to INFOCUS
+        140  // [1] = backlash when going from INFOCUS to OUTFOCUS
     };
+    uint32_t accuracy=38; // accuracy = 8 * fd^2 * wl / rms (final unit is um)
+                          // 8 is a constant
+                          // fd f/D ratio, eg 8
+                          // wl = wavelength in um, eg band=0.6um)
+                          // rms = max tolerated impact on wavefront (eg rms=1/8)
 
     int wpMode ;
 
@@ -65,7 +72,7 @@ private:
     bool gset(gpin *pin);
     int gread(gpin *pin);
     bool gtoggle(gpin *pin);
-    bool do_move(int newdir, uint32_t microns);
-    void readPosition(void);
+    bool do_move(FocusDirection newdir, uint32_t microns);
+    void readPosition(int nb);
 
 };

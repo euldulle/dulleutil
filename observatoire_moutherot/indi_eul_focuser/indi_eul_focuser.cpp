@@ -5,6 +5,7 @@
 #include <cstring>
 #include <unistd.h>  // For close()
 #include <arpa/inet.h>  // For socket functions
+#include <cmath>
 
 #include <wiringPi.h>
 #include "libindi/indicom.h"
@@ -32,13 +33,17 @@ EulFocuser::EulFocuser()
     SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 }
 
-void EulFocuser::readPosition()
+void EulFocuser::readPosition(int nb)
 {
-    char buffer[32];
+    char buffer[1024];
+    int i;
     sockaddr_in client_addr;
     socklen_t addr_len = sizeof(client_addr);
+    int bytes_received;
 
-    int bytes_received = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, &addr_len);
+    for (i=0;i<nb;++i)
+        bytes_received = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&client_addr, &addr_len);
+
 
     if (bytes_received > 0) {
         buffer[bytes_received] = '\0';  // Null-terminate the string
@@ -46,8 +51,9 @@ void EulFocuser::readPosition()
 
         // Lock the mutex before updating shared_data
         ss >> eul_position; 
-//        std::cout << "Received message: " << buffer << std::endl;
-//        fprintf(stderr,"Message received %s %.3f\n",buffer, eul_position);
+        //fprintf(stderr,"%.3f %d received\n",eul_position, bytes_received);
+        //        std::cout << "Received message: " << buffer << std::endl;
+        //        fprintf(stderr,"Message received %s %.3f\n",buffer, eul_position);
         //std::lock_guard<std::mutex> lock(data_mutex);
     }
     eul_position*=1000;
@@ -148,7 +154,7 @@ bool EulFocuser::initProperties()
     addDebugControl();
 
     // Set limits as per documentation
-    FocusAbsPosN[0].min  = 500;
+    FocusAbsPosN[0].min  = 100;
     FocusAbsPosN[0].max  = 9100;
     FocusAbsPosN[0].step = 10;
     strncpy(FocusRelPosN[0].label, "um", MAXINDILABEL);
@@ -250,7 +256,7 @@ void EulFocuser::TimerHit()
 
     // TODO: Poll your device if necessary. Otherwise delete this method and it's
     // declaration in the header file.
-    readPosition();
+    readPosition(1);
     //fprintf(stderr,"eulpos: %.3f\n",eul_position);
     //fflush(stderr);
     FocusAbsPosN[0].value = eul_position;
@@ -261,7 +267,7 @@ void EulFocuser::TimerHit()
 
     // If you don't call SetTimer, we'll never get called again, until we disconnect
     // and reconnect.
-    SetTimer(0.01);
+    SetTimer(100);
 }
 
 IPState EulFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
@@ -278,7 +284,41 @@ IPState EulFocuser::MoveAbsFocuser(uint32_t targetPos)
     // NOTE: This is needed if we do specify FOCUSER_CAN_ABS_MOVE
     // TODO: Actual code to move the focuser.
     //eul_goto(targetPos);
+    static FocusDirection last_direction;
+    uint32_t maxmove=60, count=0;
+    uint32_t current, usteps, backl;
+    int32_t delta_dist;
+    FocusDirection direction;
+
+    current=(uint32_t)eul_position;
+    delta_dist=targetPos-current;
+
+    direction = delta_dist < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
+    usteps=get_usteps_from_dist(delta_dist,usteps_per_mm); // delta_dist in um
+
+    backl=backlash[0];
+    if (direction==last_direction) backl=0;
+    else if (direction>last_direction) backl=backlash[1];
+
+    usteps=backl*(direction!=last_direction);
+    last_direction=direction;
+    while(labs(targetPos-current)>accuracy && count<maxmove) {
+        ++count;
+        usteps=get_usteps_from_dist(current-targetPos,usteps_per_mm);
+        usteps=backl+std::max((uint32_t)4,usteps);
+        fprintf(stderr,"current %u target %u dir %d\n",current, targetPos, direction);
+        do_move(direction,usteps);
+        last_direction=direction;
+        //sleep(.15);
+        readPosition(3);
+        current=(uint32_t)eul_position;
+        delta_dist=targetPos-current;
+        direction = delta_dist < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
+    }
+
+
     LOGF_INFO("MoveAbsFocuser: %d", targetPos);
+
     return IPS_OK;
 }
 
@@ -313,7 +353,7 @@ bool EulFocuser::Connect()
     //processor_thread.join();
 
 
-    SetTimer(0.01);
+    SetTimer(100);
     DEBUG(INDI::Logger::DBG_SESSION, "Eul Focuser.");
     return true;
 }
@@ -361,6 +401,15 @@ bool EulFocuser::sendCommand(const char * cmd, char * res, bool silent, int nret
     return true;
     }    
 
+uint32_t EulFocuser::get_usteps_from_dist(int32_t dist,uint32_t rate){
+    // dist is in um
+    // rate is in usteps per mm
+    //
+    // return value is in usteps
+    //return abs(int(ceil(dist)*rate))
+    return labs(dist)*rate/1000;
+}
+
 bool EulFocuser::gprint(gpin pin){
     fprintf(stderr," %4s #%d = %d\n", pin.name, pin.nr, pin.state);
     return true;
@@ -393,8 +442,9 @@ bool EulFocuser::gtoggle(gpin *pin){
     return true;
 }
 
-bool EulFocuser::do_move(int newdir, uint32_t microns){
-    static int olddir, pos;
+bool EulFocuser::do_move(FocusDirection newdir, uint32_t microns){
+    static FocusDirection olddir;
+    static int pos;
     int step_inc;
     int32_t count;
 
@@ -425,7 +475,7 @@ bool EulFocuser::do_move(int newdir, uint32_t microns){
         pos=pos+step_inc;
     }
     //step_pos=(step_pos+
-    fprintf(stderr, "ustep pos # %d\n", pos);
+    //fprintf(stderr, "ustep pos # %d\n", pos);
     gset(&enable);
     return true;
 }
