@@ -216,6 +216,22 @@ def read_status():
 
 # Define internal functions to be executed for each cell
 def callback8( relais):
+    if relais['confirm'] and relais['status'] == 'ON':
+        # ask confirmation when
+        #   'confirm' is true AND
+        #     action is to switch off
+        try:
+            rname=relais['name'][1]
+        except:
+            rname=relais['name'][0]
+        # simplified version for Relay8 as only OFF actions are expected to ask confirmation
+        addsw=' OFF';
+        action="%s%s"%(rname,addsw)
+        if not confirm_action(action +" ?"):
+            add_log(action+" cancelled")
+            return False
+        print("confirmed")
+
     request=relay8_read+"?relay=%d"%relais['addr']
     try:
         make_http_request(request)
@@ -224,6 +240,21 @@ def callback8( relais):
     get_relay8_status()
 
 def callback16(relais):
+    if relais['confirm'] and (relais['status'] == 'ON' or relais['type']=='TEMP'):
+        # ask confirmation when
+        #   'confirm' is true AND
+        #     action is to switch off  OR type is TEMP (roof cmds)
+        try:
+            rname=relais['name'][1]
+        except:
+            rname=relais['name'][0]
+        addsw="" if relais['type']=='TEMP' else ' OFF' if relais['status'] == 'ON' else ' ON';
+        action="%s%s"%(rname,addsw)
+        if not confirm_action(action +" ?"):
+            add_log(action+" cancelled")
+            return False
+        print("confirmed")
+
     try:
         make_http_request(relais['url'])
     except:
@@ -269,8 +300,8 @@ def get_cmd_status():
 
 def remote_cmd(relais, cmd):
     if relais['confirm']:
-        if not confirm_action(relais['name'][relais['status']]+' ?'):
-            add_log(relais['name'][relais['status']]+" cancelled")
+        if not confirm_action(relais['name'][0]+' ?'):
+            add_log(relais['name'][0]+" cancelled")
             return False
         print("confirmed")
 

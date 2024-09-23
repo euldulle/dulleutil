@@ -19,6 +19,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 0,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
@@ -28,6 +29,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 1,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
@@ -37,6 +39,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 2,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
@@ -46,6 +49,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 3,
         'button': [],
+        'confirm': False,
         'status': "OFF"
         },
 
@@ -55,6 +59,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 4,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
@@ -64,6 +69,7 @@ relays_16 = {
         'type': "SWITCH",
         'url': "",
         'button': [],
+        'confirm': False,
         'status': "OFF"
         },
 
@@ -73,6 +79,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 7,
         'button': [],
+        'confirm': False,
         'status': "OFF"
         },
 
@@ -82,6 +89,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 8,
         'button': [],
+        'confirm': False,
         'status': "OFF"
         },
 
@@ -91,6 +99,7 @@ relays_16 = {
         'type': "SWITCH",
         'position': 9,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
@@ -100,15 +109,17 @@ relays_16 = {
         'type': "SWITCH",
         'position': 10,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
     'Relay-14': {
-        'name': ['Clo'],
+        'name': ['Clo','Close Roof'],
         'url': "",
         'type': "TEMP",
         'position': 12,
         'button': [],
+        'confirm': True,
         'status': "OFF"
         },
 
@@ -117,15 +128,17 @@ relays_16 = {
         'url': "",
         'type': "TEMP",
         'position': 13,
+        'confirm': False,
         'button': [],
         'status': "OFF"
         },
 
     'Relay-16': {
-        'name': ['Opn'],
+        'name': ['Opn','Open Roof'],
         'url': "",
         'type': "TEMP",
         'position': 14,
+        'confirm': True,
         'button': [],
         'status': "OFF"
         }
@@ -133,56 +146,62 @@ relays_16 = {
 
 relays_8 = {
     'Relay1': {
-        'name': ['lgt'],
+        'name': ['lgt','Light'],
         'position': 5,
         'button': [],
         'addr': 1,
         'status': "OFF",
+        'confirm': False,
         'config': "NO" # normally open
         },
 
     'Relay2': {
-        'name': ['pil'],
+        'name': ['pil','Alim Pilier'],
         'position': 0,
         'button': [],
         'addr': 2,
+        'confirm': True,
         'status': "ON",
         'config': "NC" # normally closed
         },
 
     'Relay3': {
-        'name': ['cam'],
+        'name': ['cam','Camera TIS'],
         'position': 3,
         'button': [],
         'addr': 3,
+        'confirm': True,
         'status': "OFF",
         'config': "NO" # normally open
         },
 
     'Relay4': {
-        'name': ['PrN'],
+        'name': ['PrN','Prises Nord'],
         'position': 4,
         'button': [],
         'addr': 4,
         'status': "ON",
+        'confirm': False,
         'config': "NC" # normally closed
         },
 
     'Relay5': {
-        'name': ['PrS'],
+        'name': ['PrS','Prises Sud'],
         'position': 2,
         'button': [],
         'addr': 5,
         'status': "ON",
+        'confirm': False,
         'config': "NC" # normally closed
         },
 
     'Relay6': {
-        'name': ['R16'],
+        'name': ['R16','Relais 16 ports'],
         'position': 1,
         'button': [],
         'addr': 6,
         'status': "ON",
+        'confirm': True,
         'config': "NC" # normally closed
         },
 
