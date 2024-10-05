@@ -16,6 +16,7 @@ from relay_rsc import *
 from datetime import datetime  # Import datetime module for timestamp
 
 lock = threading.Lock()
+sock=False
 oidup=False
 class SSHClient:
     def __init__(self, host, port, username, private_key_file):
@@ -59,6 +60,29 @@ class SSHClient:
             self.client.close()
             add_log(f"Connection to {self.host} closed")
 
+# Function to listen on UDP port and update the latest message
+def init_udp_listener():
+    global sock
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind(('', 2345))
+    sock.setblocking(0)  # Non-blocking mode
+    return sock
+
+def read_focuser():
+    global sock, latest_message
+    try:
+        data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
+        latest_message.set("Focus: "+data.decode('utf-8').strip().split()[0]+" mm")  # Update the StringVar
+        return latest_message
+    except BlockingIOError:
+        pass  # No data received, continue the loop
+
+# Function to update the label in the Tkinter window
+def update_label():
+    # This function runs in the Tkinter main loop to refresh the label with the latest message
+    message_label.config(text=latest_message.get())
+    root.after(100, update_label)  # Check again after 100 ms
+
 
 def confirm_action(action):
     # Display a confirmation dialog
@@ -72,9 +96,15 @@ def confirm_action(action):
         return False
 
 def update_time():
+    focuserpos=read_focuser()
+    try:
+        focuser.config(text=focuserpos.get())  # update existing pos
+    except:
+        pass
+
     current_time = datetime.now().strftime("%H:%M:%S")  # Format time as YYYY-MM-DD HH:MM:SS
     clock.config(text=current_time)  # Clear existing text
-    root.after(1000, update_time)  # Update every 1000 ms (1 second)
+    root.after(100, update_time)  # Update every 1000 ms (1 second)
 
 def get_relay8_status():
     try:
@@ -449,6 +479,9 @@ clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
 clock.config(anchor="center")
 clock.grid(row=0, column=0,columnspan=3)
 #clock.pack(pady=20)
+focuser = tk.Label(grid_cmd, height=1, width=18, font=("Helvetica", 12))
+focuser.config(anchor="center")
+focuser.grid(row=1, column=0,columnspan=3)
 
 # Quit button
 quit_button = tk.Button(root, text="Quit", command=quit_application)
@@ -456,6 +489,8 @@ quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
+latest_message = tk.StringVar()
+udp_socket=init_udp_listener()
 
 processor_thread = threading.Thread(target=read_status)
 processor_thread.daemon = True
