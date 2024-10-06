@@ -95,16 +95,35 @@ def confirm_action(action):
         # User clicked 'No' or closed the dialog
         return False
 
-def update_time():
-    focuserpos=read_focuser()
+def test_connectivity(host, port, timeout=1):
     try:
-        focuser.config(text=focuserpos.get())  # update existing pos
-    except:
-        pass
+        with socket.create_connection((host, port), timeout):
+            return True
+    except (socket.timeout, ConnectionRefusedError, OSError):
+        return False
 
-    current_time = datetime.now().strftime("%H:%M:%S")  # Format time as YYYY-MM-DD HH:MM:SS
-    clock.config(text=current_time)  # Clear existing text
-    root.after(100, update_time)  # Update every 1000 ms (1 second)
+
+class updatesManager():
+    def __init__(self):
+        self.color1='lightgreen'
+        self.color2='yellow'
+        self.updates={'time': 1, 'focuser': 10,'oid': 101, 'r16': 103, 'pi3': 107}
+        self.maxup=self.updates['pi3']*self.updates['r16']
+        self.counter=0
+        self.foc_color=self.color1
+
+    def update(self):
+        self.counter=self.counter+1 % self.maxup
+
+        if (self.counter % self.updates['focuser'] == 0):
+            self.foc_color=self.color1 if self.foc_color == self.color2 else self.color2
+            focuser.config(text=read_focuser().get(), bg=self.foc_color)  # update existing pos
+        
+        if (self.counter % self.updates['time'] == 0):
+            current_time = datetime.now().strftime("%%H:%%M:%%S %d"%self.counter)  # Format time as YYYY-MM-DD HH:MM:SS
+            clock.config(text=current_time)  # Clear existing text
+
+        root.after(100, self.update)  # Update every 1000 ms (1 second)
 
 def get_relay8_status():
     try:
@@ -495,7 +514,7 @@ udp_socket=init_udp_listener()
 processor_thread = threading.Thread(target=read_status)
 processor_thread.daemon = True
 processor_thread.start()
-
-update_time()
+updates=updatesManager()
+updates.update()
 #read_status()
 root.mainloop()
