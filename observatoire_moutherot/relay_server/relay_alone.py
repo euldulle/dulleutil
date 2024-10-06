@@ -43,7 +43,7 @@ class SSHClient:
             oidup=True
 
         except:
-            add_log(f"ssh connect %s failed"%(self.host))
+            #add_log(f"ssh connect %s failed"%(self.host))
             oidup=False
 
     def send_command(self, command):
@@ -52,7 +52,7 @@ class SSHClient:
                 stdin, stdout, stderr = self.client.exec_command(command)
                 return stdout.read().decode('utf-8')
             except:
-                add_log("ssh send_cmd %s failed "%self.host)
+                #add_log("ssh send_cmd %s failed "%self.host)
                 return "failed"
 
     def close(self):
@@ -103,6 +103,19 @@ def test_connectivity(host, port, timeout=1):
         return False
 
 
+class checkItems:
+    def __init__(self,widget, row, col, span, color1='lightgreen', color2='yellow', period=1, width=4, label="01234",color='lightgreen', address='192.168.1.255', port=22):
+        self.widget=widget
+        self.color1=color1
+        self.color2=color2
+        self.period=period
+        self.widget.config
+        self.widget.config(anchor="center", text=label)
+        self.widget.grid(row=row, column=col,columnspan=span)
+        self.color=color1
+        self.address=address
+        self.port=port
+
 class updatesManager():
     def __init__(self):
         self.color1='lightgreen'
@@ -110,27 +123,51 @@ class updatesManager():
         self.updates={'time': 1, 'focuser': 10,'oid': 101, 'r16': 103, 'pi3': 107}
         self.maxup=self.updates['pi3']*self.updates['r16']
         self.counter=0
-        self.foc_color=self.color1
+        self.color=self.color1
 
     def update(self):
-        self.counter=self.counter+1 % self.maxup
 
-        if (self.counter % self.updates['focuser'] == 0):
-            self.foc_color=self.color1 if self.foc_color == self.color2 else self.color2
-            focuser.config(text=read_focuser().get(), bg=self.foc_color)  # update existing pos
+        if (self.counter % focuser.period == 0):
+            focuser.color=focuser.color1 if focuser.color == focuser.color2 else focuser.color2
+            try:
+                focuser.widget.config(text=read_focuser().get(), bg=focuser.color)  # update existing pos
+            except:
+                pass
         
-        if (self.counter % self.updates['time'] == 0):
-            current_time = datetime.now().strftime("%%H:%%M:%%S %d"%self.counter)  # Format time as YYYY-MM-DD HH:MM:SS
-            clock.config(text=current_time)  # Clear existing text
+        if (self.counter % clock.period == 0):
+            current_time = datetime.now().strftime("%H:%M:%S")  # Format time as YYYY-MM-DD HH:MM:SS
+            clock.widget.config(text=current_time)  # Clear existing text
 
-        root.after(100, self.update)  # Update every 1000 ms (1 second)
+        if (self.counter % pollR16.period == 0):
+            if test_connectivity(pollR16.address, pollR16.port, timeout=1):
+                pollR16.color=pollR16.color1 if pollR16.color==pollR16.color2 else pollR16.color2
+                pollR16.widget.config(bg=pollR16.color)  # Clear existing text
+            else:
+                pollR16.widget.config(bg='red')  # Clear existing text
+
+        if (self.counter % pollOid.period == 0):
+            if test_connectivity(pollOid.address, pollOid.port, timeout=1):
+                pollOid.color=pollOid.color1 if pollOid.color==pollOid.color2 else pollOid.color2
+                pollOid.widget.config(bg=pollOid.color)  # Clear existing text
+            else:
+                pollOid.widget.config(bg='red')  # Clear existing text
+
+        if (self.counter % pollPi3.period == 0):
+            if test_connectivity(pollPi3.address, pollOid.port, timeout=1):
+                pollPi3.color=pollOid.color1 if pollOid.color==pollOid.color2 else pollOid.color2
+                pollPi3.widget.config(bg=pollOid.color)  # Clear existing text
+            else:
+                pollPi3.widget.config(bg='red')  # Clear existing text
+
+        self.counter=self.counter+1 % self.maxup
+        root.after(100, self.update)  # Update every 100 ms (.1 second)
 
 def get_relay8_status():
     try:
         # print(relay8_read)
         status=make_http_request(relay8_read).text.splitlines()
     except:
-        add_log(" Relay8 request failed (%s)"%relay8_read)
+        #add_log(" Relay8 request failed (%s)"%relay8_read)
         return
     filtered=[line for line in status if ': ' in line]
     fields=filtered[0].split()
@@ -152,7 +189,7 @@ def get_relay16_status():
             for i in range(4):
                 f.write(make_http_request(relay16_read).text)
         except:
-            add_log("Relay16 request failed (%s)"%relay16_read)
+            #add_log("Relay16 request failed (%s)"%relay16_read)
             return
 
     status16="cat /tmp/relay16 |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g'|\
@@ -195,11 +232,13 @@ def make_http_request(url):
             # Process the response data (in this example, just print it)
             return response
         else:
-            print(f"HTTP Request Failed with status code: {response.status_code}")
+            #print(f"HTTP Request Failed with status code: {response.status_code}")
+            pass
 
     except requests.exceptions.RequestException as e:
         # Handle exceptions (e.g., connection error, timeout)
-        print(f"HTTP Request Error")
+        #print(f"HTTP Request Error")
+        pass
 
 def invert_last_bit_in_url(url):
     # Find the last segment of the URL that contains the hexadecimal value
@@ -285,7 +324,8 @@ def callback8( relais):
     try:
         make_http_request(request)
     except:
-        add_log("R8 command request failed: %s"%request)
+        #add_log("R8 command request failed: %s"%request)
+        pass
     get_relay8_status()
 
 def callback16(relais):
@@ -307,7 +347,8 @@ def callback16(relais):
     try:
         make_http_request(relais['url'])
     except:
-        add_log("R16 command request failed: %s"%relais['url'])
+        #add_log("R16 command request failed: %s"%relais['url'])
+        pass
     url=invert_last_bit_in_url(relais['url'])
     #print(url)
     if relais['type']=='TEMP':
@@ -377,7 +418,7 @@ def create_grid(items, rset):
 
     if rset==0:
         frame=grid_cmd
-        incpos=2 # that's 1 for the title, 2 for time
+        incpos=5 # that's 1 for the title, 2 for time 3 for focuser 4 for pi/oid/r16
 
     if rset==1:
         frame=grid_cmd2
@@ -494,13 +535,23 @@ create_grid(relays_16.items(),16)
 create_grid(relays_8.items(),8)
 create_grid(cmds.items(),0)
 #create_grid(cmds2.items(),1)
-clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
-clock.config(anchor="center")
-clock.grid(row=0, column=0,columnspan=3)
+
+clock=checkItems(widget=tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18)),row=0, col=0, span=3,color1='lightgreen', color2='yellow', period=10, label="Time")
+
+#clock = tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18))
+#clock.config(anchor="center")
+#clock.grid(row=0, column=0,columnspan=3)
+
+
 #clock.pack(pady=20)
-focuser = tk.Label(grid_cmd, height=1, width=18, font=("Helvetica", 12))
-focuser.config(anchor="center")
-focuser.grid(row=1, column=0,columnspan=3)
+#focuser = tk.Label(grid_cmd, height=1, width=18, font=("Helvetica", 12))
+#focuser.config(anchor="center")
+#focuser.grid(row=1, column=0,columnspan=3)
+
+focuser=checkItems(widget=tk.Label(grid_cmd, height=1, width=15, font=("Helvetica", 12)),row=1, col=0, span=3,color1='lightgreen', color2='#ccffcc', period=10, label="foc")
+pollR16=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=0, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="R16", address="192.168.1.28", port=80)
+pollOid=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=1, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="OID", address="192.168.1.26", port=22)
+pollPi3=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=2, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="PI3", address="192.168.1.27", port=22)
 
 # Quit button
 quit_button = tk.Button(root, text="Quit", command=quit_application)
@@ -510,11 +561,11 @@ ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
 latest_message = tk.StringVar()
 udp_socket=init_udp_listener()
+updates=updatesManager()
 
 processor_thread = threading.Thread(target=read_status)
 processor_thread.daemon = True
 processor_thread.start()
-updates=updatesManager()
 updates.update()
 #read_status()
 root.mainloop()
