@@ -39,7 +39,7 @@ class SSHClient:
             # Connect to SSH server using key-based authentication
             self.client.connect(self.host, self.port, self.username, pkey=private_key,sock=sock)
             self.transport=self.client.get_transport()
-            print(f"Connected to {self.host}")
+            #print(f"Connected to {self.host}")
             oidup=True
 
         except:
@@ -67,15 +67,6 @@ def init_udp_listener():
     sock.bind(('', 2345))
     sock.setblocking(0)  # Non-blocking mode
     return sock
-
-def read_focuser():
-    global sock, latest_message
-    try:
-        data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
-        latest_message.set("Focus: "+data.decode('utf-8').strip().split()[0]+" mm")  # Update the StringVar
-        return latest_message
-    except BlockingIOError:
-        pass  # No data received, continue the loop
 
 # Function to update the label in the Tkinter window
 def update_label():
@@ -130,7 +121,7 @@ class updatesManager():
         if (self.counter % focuser.period == 0):
             focuser.color=focuser.color1 if focuser.color == focuser.color2 else focuser.color2
             try:
-                focuser.widget.config(text=read_focuser().get(), bg=focuser.color)  # update existing pos
+                focuser.widget.config(text=latest_message, bg=focuser.color)  # update existing pos
             except:
                 pass
         
@@ -282,25 +273,37 @@ def quit_application():
     root.destroy()  # Close the main window and terminate the application
 
 def read_status():
-    global ssh_client, call_counter
-    pollper=5           # poll every 5 seconds
+    global ssh_client, call_counter, latest_message
+    pollper=0.1           # poll every 5 seconds
     logfreq=60          # log every 60 seconds
     maxcount=logfreq/pollper
     while True:
         call_counter = (call_counter+1) % maxcount
-        if call_counter == 1:
+        if call_counter == 1: # log every ~ minute (once per maxcount)
             add_log("Mark")
-        get_relay8_status()
-        get_relay16_status()
-        get_cmd_status()
-        try:
-            if not ssh_client.transport.is_active():
+
+        if call_counter %50 == 0:
+            get_relay8_status()
+            get_relay16_status()
+            get_cmd_status()
+            try:
+                if not ssh_client.transport.is_active():
+                    ssh_client.connect()
+            except:
                 ssh_client.connect()
-        except:
-            ssh_client.connect()
 
         #root.after(1000*pollper, read_status)
+
+        while True: # read all available data from the focuser udp port
+            try:
+                data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
+                latest_message="Focus: "+data.decode('utf-8').strip().split()[0]+" mm"  # Update the StringVar
+            except BlockingIOError:
+                break  # No data received, wa have the latest position available, so break the loop
         sleep(pollper)
+
+
+
 
 # Define internal functions to be executed for each cell
 def callback8( relais):
@@ -559,7 +562,7 @@ quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
-latest_message = tk.StringVar()
+latest_message = "Focuser"
 udp_socket=init_udp_listener()
 updates=updatesManager()
 
