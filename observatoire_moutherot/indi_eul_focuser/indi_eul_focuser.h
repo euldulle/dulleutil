@@ -33,7 +33,7 @@ private:
     virtual bool Disconnect();
     bool sendCommand(const char * cmd, char * res = nullptr, bool silent = false, int nret = 0);
     static const uint8_t EF_TIMEOUT { 3 };
-    int udp_socket;
+    // int udp_socket;
     static int init_udp_listener(int port);
     static uint32_t get_usteps_from_dist(int32_t dist,uint32_t rate);
     static void udp_listener(int port);
@@ -45,6 +45,7 @@ private:
         } gpin;
 
     gpin step, dir, enable;
+    std::thread *readThread;
 
     static float eul_position;  // Shared variable
     static int udp_port;
@@ -73,6 +74,6 @@ private:
     int gread(gpin *pin);
     bool gtoggle(gpin *pin);
     bool do_move(FocusDirection newdir, uint32_t microns);
-    void readPosition(int nb);
+    static void readPosition();
 
 };
