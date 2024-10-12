@@ -34,6 +34,11 @@ EulFocuser::EulFocuser()
     SetCapability(FOCUSER_CAN_REL_MOVE | FOCUSER_CAN_ABS_MOVE);
 }
 
+uint32_t EulFocuser::getPosition(){
+    std::lock_guard<std::mutex> lock(data_mutex);
+    return (uint32_t) eul_position;
+}
+
 void EulFocuser::readPosition()
 {
     char buffer[32];
@@ -78,12 +83,13 @@ void EulFocuser::readPosition()
             std::lock_guard<std::mutex> lock(data_mutex);
             ss >> eul_position; 
             eul_position*=1000;
-            // fprintf(stderr,"pos %f\n",eul_position);
-            // std::cout << "Received message: " << buffer ;
+            // fprintf(stderr,"pos %f ",eul_position);
+            //std::cout << "Received message: " << buffer ;
         }
         else{
-            // std::cout << "silence " << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));  // Simulate processing delay
+            //std::cout << "silence " << std::endl;
+            // fprintf(stderr,"silence \n");
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));  // Simulate processing delay
         }
     }
 }
@@ -212,7 +218,7 @@ bool EulFocuser::saveConfigItems(FILE *fp)
 
 void EulFocuser::TimerHit()
 {
-    LOG_INFO("timer hit");
+    //LOG_INFO("timer hit");
     //readPosition();
     if (!isConnected())
         return;
@@ -226,11 +232,9 @@ void EulFocuser::TimerHit()
     //FocusAbsPosN[0].value = 5000;
     IDSetNumber(&FocusAbsPosNP, nullptr);
 
-    LOG_INFO("timer hit");
-
-    // If you don't call SetTimer, we'll never get called again, until we disconnect
-    // and reconnect.
+    //LOG_INFO("timer hit");
     SetTimer(1000);
+
 }
 
 IPState EulFocuser::MoveFocuser(FocusDirection dir, int speed, uint16_t duration)
@@ -253,7 +257,7 @@ IPState EulFocuser::MoveAbsFocuser(uint32_t targetPos)
     int32_t delta_dist;
     FocusDirection direction;
 
-    current=(uint32_t)eul_position;
+    current=getPosition();
     delta_dist=targetPos-current;
 
     direction = delta_dist < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
@@ -273,13 +277,14 @@ IPState EulFocuser::MoveAbsFocuser(uint32_t targetPos)
         fprintf(stderr,"  MoveAbsFocuser looping current %u target %u dir %d\n",current, targetPos, direction);
         do_move(direction,usteps);
         last_direction=direction;
-        current=(uint32_t)eul_position;
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));  // 
+        current=getPosition();
         delta_dist=targetPos-current;
         direction = delta_dist < 0 ? FOCUS_INWARD : FOCUS_OUTWARD;
     }
 
 
-    LOGF_INFO("MoveAbsFocuser: %d", targetPos);
+    LOGF_INFO("MoveAbsFocuser: %d final reading %d", targetPos, current);
 
     return IPS_OK;
 }
@@ -306,7 +311,7 @@ bool EulFocuser::Connect()
     //DEBUG(INDI::Logger::DBG_SESSION, "starting listener ");
     // udp_socket=init_udp_listener(2345);
     //readPosition();
-    SetTimer(getCurrentPollingPeriod());
+    SetTimer(100);
     // Start the data processing thread
     // readThread = new std::thread processor_thread(readPosition, this);
     readThread = new std::thread(&EulFocuser::readPosition);
@@ -404,8 +409,6 @@ bool EulFocuser::gtoggle(gpin *pin){
 
 bool EulFocuser::do_move(FocusDirection newdir, uint32_t microns){
     static FocusDirection olddir;
-    static int pos;
-    int step_inc;
     int32_t count;
 
     gclr(&enable);
@@ -415,14 +418,12 @@ bool EulFocuser::do_move(FocusDirection newdir, uint32_t microns){
         count=count+backlash[newdir];
     }
     olddir=newdir;
-    fprintf(stderr,"do_move initial %d %d\n", count, microns);
+    fprintf(stderr,"do_move %d steps = %d microns dir = %d\n", count, microns, newdir);
 
     if (newdir==INFOCUS){  // infocus 
-        step_inc=-1;
         gclr(&dir);
     }
     else{                   // outfocus
-        step_inc=1;
         gset(&dir);
     }
 
@@ -432,7 +433,6 @@ bool EulFocuser::do_move(FocusDirection newdir, uint32_t microns){
         usleep(delay_step);
         gclr(&step);
         usleep(delay_step);
-        pos=pos+step_inc;
     }
 
     gset(&enable);
