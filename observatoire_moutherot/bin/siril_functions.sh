@@ -1,7 +1,3 @@
-#!/bin/bash
-#
-#
-#
 #source /etc/bash_completion.d/siril-completion
 export SIRILRC="$HOME/.config/siril/sirilrc" # location of the siril bash cli resource file
 source $SIRILRC
@@ -16,31 +12,31 @@ B="\\033[1;31;5m"
 
 green(){
     set -o noglob
-    echo -ne "$V   " $1; echo -e "  $N$2"
+    echo -ne "$V   " $1; echo -e "  $N$2" >&2
     set +o noglob
     }
 
 red(){
     set -o noglob
-    echo -ne "$R   " $1; echo -e "  $N$2"
+    echo -ne "$R   " $1; echo -e "  $N$2" >&2
     set +o noglob
     }
 
 cyan(){
     set -o noglob
-    echo -ne "$C   " $1; echo -e "  $N$2"
+    echo -ne "$C   " $1; echo -e "  $N$2" >&2
     set +o noglob
     }
 
 blink(){
     set -o noglob
-    echo -ne "$B$C   " $1; echo -e "  $N$2"
+    echo -ne "$B$C   " $1; echo -e "  $N$2" >&2
     set +o noglob
     }
 
-splog(){ # log to stdout
+splog(){ # log to stderr
     set -o noglob
-    echo $*
+    echo $* >&2
     set +o noglob
 }
 
@@ -407,18 +403,34 @@ srl_wd(){
             fi
         fi
     else
-        echo $SRLWD
+        if test -z "$SRLWD"; then
+            export SRLWD=$(pwd)
+        else
+            echo $SRLWD
+        fi
     fi
 }
 
 srl_mkflat(){
-    sirilscript=$SIRTMP/flat.ssc
+    logfile=$SRLTMP/${FUNCNAME[0]}.log
+    splog "Running ${FUNCNAME[0]}, output to $logfile" 
+    splog " making flats in dir $SRLWD"
+    exec 6>&1    # Lie le descripteur de fichier #6 avec stdout.
+                 # Sauvegarde stdout.
+    #
+    exec >$logfile   # stdout remplace par outfile2
+
+    sirilscript=$SRLTMP/flat.ssc
     rootdir=$1
     if test -z "$rootdir"; then
-        rootdir=$PWD
+        rootdir=$SRLWD
+        if test -z "$rootdir"; then
+            rootdir=$(pwd)
+        fi
     fi
     cd ${rootdir}
 
+    splog " building siril script $sirilscript" >&2
     echo "cd $rootdir" >$sirilscript
     seqname=()
     for i in Flat-*.seq; do
@@ -428,9 +440,15 @@ srl_mkflat(){
     done >>$sirilscript;
 
     siril -s $sirilscript
+    builtlist=""
+    mkdir -p archives
     for i in Flat-*.seq; do
-        mv $rootdir/${i}_stacked.fits $(echo $i | awk -F\- '{print $1 "-" $2}').fits
-        mv $rootdir/$(basename ${i} .seq)* $calibdir/archives/
+        seqroot=$(basename $i .seq)
+        destmaster=$(echo $i | awk -F\- '{print $1 "-" $2}').fits
+        builtlist="$builtlist "$destmaster
+        mv $rootdir/${seqroot}stacked.fits ${destmaster}
     done
+    /bin/ls -l $builtlist >&2
+    exec 1>&6 6<&-
 }
 
