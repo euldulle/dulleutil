@@ -411,6 +411,29 @@ srl_wd(){
     fi
 }
 
+srl_flatcalib(){ # sample call : srl_flatcal A3-Blue-30s-2x2_ Flat-Blue
+    logfile=$SRLTMP/${FUNCNAME[0]}.log
+    splog "Running ${FUNCNAME[0]}, output to $logfile"
+    splog " calibrating $1 with $2 in dir $SRLWD"
+    exec 6>&1    # Lie le descripteur de fichier #6 avec stdout.
+                 # Sauvegarde stdout.
+    #
+    exec >$logfile   # stdout remplace par outfile2
+    sirilscript=$SRLTMP/flatcalib.ssc
+    cd $SRLWD
+    echo "cd $SRLWD" >$sirilscript
+    seqname="$1"
+    masterflat="$2"
+    if test -n "$seqname" && test -f "$masterflat"; then
+        echo "calibrate ${seqname} -flat=$masterflat" >>$sirilscript
+    fi
+    siril -s $sirilscript
+
+    srl_chkseq
+    exec 1>&6 6<&-
+    srl_seqsize pp_$seqname
+}
+
 srl_mkflat(){
     logfile=$SRLTMP/${FUNCNAME[0]}.log
     splog "Running ${FUNCNAME[0]}, output to $logfile" 
