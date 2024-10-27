@@ -13,7 +13,7 @@ from tkinter import scrolledtext
 
 
 relays_16 = {
-    'Relay-12': {
+    'Relay-06': {
         'name': ['USB'],
         'url': "",
         'type': "SWITCH",
@@ -23,7 +23,7 @@ relays_16 = {
         'status': "OFF"
         },
 
-    'Relay-13': {
+    'Relay-12': {
         'name': ['EQ8'],
         'url': "",
         'type': "SWITCH",
@@ -33,7 +33,7 @@ relays_16 = {
         'status': "OFF"
         },
 
-    'Relay-10': {
+    'Relay-07': {
         'name': ['Oid'],
         'url': "",
         'type': "SWITCH",
@@ -43,7 +43,7 @@ relays_16 = {
         'status': "OFF"
         },
 
-    'Relay-09': {
+    'Relay-10': {
         'name': ['DH'],
         'url': "",
         'type': "SWITCH",
@@ -133,7 +133,7 @@ relays_16 = {
         'status': "OFF"
         },
 
-    'Relay-16': {
+    'Relay-13': {
         'name': ['Opn','Open Roof'],
         'url': "",
         'type': "TEMP",
