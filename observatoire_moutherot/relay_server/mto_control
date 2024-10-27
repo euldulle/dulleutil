@@ -18,6 +18,24 @@ from datetime import datetime  # Import datetime module for timestamp
 lock = threading.Lock()
 sock=False
 oidup=False
+
+network="192.168.1"
+broadcast=network+".255"
+
+r8IP=network+".23"
+relay8_read="http://fmeyer:4so4xRg9@"+r8IP+"/relays.cgi"
+
+oidIP=network+".26"
+pi3IP=network+".27"
+r16IP=network+".28"
+
+r16Addr="http://"+r16IP+"/30"
+relay16Read=r16Addr+"/99"
+
+buttons=[]
+grid_frame16 = []
+grid_frame8 = []
+call_counter=0
 class SSHClient:
     def __init__(self, host, port, username, private_key_file):
         self.host = host
@@ -43,25 +61,25 @@ class SSHClient:
             oidup=True
 
         except:
-            #add_log(f"ssh connect %s failed"%(self.host))
+            #addLog(f"ssh connect %s failed"%(self.host))
             oidup=False
 
-    def send_command(self, command):
+    def sendCommand(self, command):
         if self.transport and self.transport.is_active():
             try:
                 stdin, stdout, stderr = self.client.exec_command(command)
                 return stdout.read().decode('utf-8')
             except:
-                #add_log("ssh send_cmd %s failed "%self.host)
+                #addLog("ssh send_cmd %s failed "%self.host)
                 return "failed"
 
     def close(self):
         if self.client:
             self.client.close()
-            add_log(f"Connection to {self.host} closed")
+            addLog(f"Connection to {self.host} closed")
 
 # Function to listen on UDP port and update the latest message
-def init_udp_listener():
+def initUDPListener():
     global sock
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', 2345))
@@ -86,7 +104,7 @@ def confirm_action(action):
         # User clicked 'No' or closed the dialog
         return False
 
-def test_connectivity(host, port, timeout=1):
+def testConnectivity(host, port, timeout=1):
     try:
         with socket.create_connection((host, port), timeout):
             return True
@@ -95,7 +113,7 @@ def test_connectivity(host, port, timeout=1):
 
 
 class checkItems:
-    def __init__(self,widget, row, col, span, color1='lightgreen', color2='yellow', period=1, width=4, label="01234",color='lightgreen', address='192.168.1.255', port=22):
+    def __init__(self,widget, row, col, span, color1='lightgreen', color2='yellow', period=1, width=4, label="01234",color='lightgreen', address=broadcast, port=22):
         self.widget=widget
         self.color1=color1
         self.color2=color2
@@ -130,21 +148,21 @@ class updatesManager():
             clock.widget.config(text=current_time)  # Clear existing text
 
         if (self.counter % pollR16.period == 0):
-            if test_connectivity(pollR16.address, pollR16.port, timeout=1):
+            if testConnectivity(pollR16.address, pollR16.port, timeout=1):
                 pollR16.color=pollR16.color1 if pollR16.color==pollR16.color2 else pollR16.color2
                 pollR16.widget.config(bg=pollR16.color)  # Clear existing text
             else:
                 pollR16.widget.config(bg='red')  # Clear existing text
 
         if (self.counter % pollOid.period == 0):
-            if test_connectivity(pollOid.address, pollOid.port, timeout=1):
+            if testConnectivity(pollOid.address, pollOid.port, timeout=1):
                 pollOid.color=pollOid.color1 if pollOid.color==pollOid.color2 else pollOid.color2
                 pollOid.widget.config(bg=pollOid.color)  # Clear existing text
             else:
                 pollOid.widget.config(bg='red')  # Clear existing text
 
         if (self.counter % pollPi3.period == 0):
-            if test_connectivity(pollPi3.address, pollOid.port, timeout=1):
+            if testConnectivity(pollPi3.address, pollOid.port, timeout=1):
                 pollPi3.color=pollOid.color1 if pollOid.color==pollOid.color2 else pollOid.color2
                 pollPi3.widget.config(bg=pollOid.color)  # Clear existing text
             else:
@@ -153,12 +171,12 @@ class updatesManager():
         self.counter=self.counter+1 % self.maxup
         root.after(100, self.update)  # Update every 100 ms (.1 second)
 
-def get_relay8_status():
+def getRelay8Status():
     try:
         # print(relay8_read)
         status=make_http_request(relay8_read).text.splitlines()
     except:
-        #add_log(" Relay8 request failed (%s)"%relay8_read)
+        #addLog(" Relay8 request failed (%s)"%relay8_read)
         return
     filtered=[line for line in status if ': ' in line]
     fields=filtered[0].split()
@@ -174,44 +192,70 @@ def get_relay8_status():
                     relay['status']="ON" if fields[i] == '0' else 'OFF'
             relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
 
-def get_relay16_status():
-    with open ("/tmp/relay16", "w") as f:
-        try:
-            for i in range(4):
-                f.write(make_http_request(relay16_read).text)
-        except:
-            #add_log("Relay16 request failed (%s)"%relay16_read)
+def getRelay16Status():
+    # Fetch the relay status
+    try:
+        response = requests.get(relay16Read, timeout=5)
+        response_text = response.text.strip()
+        
+        # Extract the ASCII data from the response
+        if r16Addr in response_text:
+            ascii_data = response_text.split('/')[9].split('"')[0].strip()
+        else:
+            print("Unexpected response format:", response_text)
             return
 
-    status16="cat /tmp/relay16 |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g'|\
-    grep 'Relay...:'|\
-    sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@\"@@g'|\
-    awk '{print $2 \" \" $5 \" \" $7}'"
-    status16="cat /tmp/relay16 |sed 's/<p>R/<p>\ R/g;s/<p> R/\\n<p> R/g;s@&nbsp@@g'|grep 'Relay...:'|"
-    status16+="sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@\"@@g;s@: @ @'|"
-    status16+="awk '{print $2 \" \" $5 \" \" $7}'"
+        # Update the status of each relay in the array
+        for relay_key, relay in relays_16.items():
+            relay_number = int(relay_key.split('-')[1]) - 1
+            relay['status'] = "ON" if ascii_data[relay_number] == '1' else "OFF"
+            relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
+            addr=2*relay_number                 # if relay is on, address to call to set it off
+            if ascii_data[relay_number] == '0':  # if relay is off,
+                addr=addr+1                     # address to call to set it on 
+            relay['url']="%s/%.2d"%(r16Addr,addr)
 
-    # Execute the command
-    process = subprocess.Popen(status16, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    except requests.RequestException as e:
+        print("Error fetching relay status:", e)
 
-    # Wait for the process to complete and capture output
-    stdout, stderr = process.communicate()
-
-    # Check the return code
-    return_code = process.returncode
-    if return_code == 0:
-        for line in stdout.splitlines():
-            fields=line.split()
-            if fields[0] in relays_16:
-                relay=relays_16[fields[0]];
-                if fields[1]!=relay['status']:
-                    relay['status']=fields[1]
-                    relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
-
-                relay['url']=fields[2]
-
-    else:
-        print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
+#              def getRelay16Status():
+#                  with open ("/tmp/relay16", "w") as f:
+#                      try:
+#                          for i in range(4):
+#                              f.write(make_http_request(relay16Read).text)
+#                      except:
+#                          #addLog("Relay16 request failed (%s)"%relay16Read)
+#                          return
+#           
+#                  status16="cat /tmp/relay16 |sed 's/<p>R/<p> R/g;s/<p> R/\n<p> R/g;s@&nbsp@@g'|\
+#                  grep 'Relay...:'|\
+#                  sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@\"@@g'|\
+#                  awk '{print $2 \" \" $5 \" \" $7}'"
+#                  status16="cat /tmp/relay16 |sed 's/<p>R/<p>\ R/g;s/<p> R/\\n<p> R/g;s@&nbsp@@g'|grep 'Relay...:'|"
+#                  status16+="sed 's@<center.*@@;s@<small>.*</small>@@;s@> ON/@>ON/@;s@>O@ >O@g;s@</font>@@;s@028@0.28@;s@href=@@;s@\"@@g;s@: @ @'|"
+#                  status16+="awk '{print $2 \" \" $5 \" \" $7}'"
+#           
+#                  # Execute the command
+#                  process = subprocess.Popen(status16, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+#           
+#                  # Wait for the process to complete and capture output
+#                  stdout, stderr = process.communicate()
+#           
+#                  # Check the return code
+#                  return_code = process.returncode
+#                  if return_code == 0:
+#                      for line in stdout.splitlines():
+#                          fields=line.split()
+#                          if fields[0] in relays_16:
+#                              relay=relays_16[fields[0]];
+#                              if fields[1]!=relay['status']:
+#                                  relay['status']=fields[1]
+#                                  relay['button'].config(fg='red' if relay['status'] == 'OFF' else 'green')
+#           
+#                              relay['url']=fields[2]
+#           
+#                  else:
+#                      print("Command '{command}' failed with return code {return_code}\nError: {stderr.strip()}")
 
 def make_http_request(url):
     sys.stderr.write(url+"\n")
@@ -231,7 +275,7 @@ def make_http_request(url):
         #print(f"HTTP Request Error")
         pass
 
-def invert_last_bit_in_url(url):
+def invertLastBitInUrl(url):
     # Find the last segment of the URL that contains the hexadecimal value
     match = re.search(r'/([0-9a-fA-F]{2})$', url)
 
@@ -256,23 +300,11 @@ def invert_last_bit_in_url(url):
         # If no match is found (e.g., no hexadecimal value in the URL), return the original URL
         return url
 
-network="192.168.1"
-r16ip=network+".28"
-r16=r16ip+"/30"
-relay16_read="http://"+r16+"/43"
-
-r8ip=network+".23"
-relay8_read="http://fmeyer:4so4xRg9@"+r8ip+"/relays.cgi"
-
-buttons=[]
-grid_frame16 = []
-grid_frame8 = []
-call_counter=0
 # Function to quit the application
-def quit_application():
+def quitApp():
     root.destroy()  # Close the main window and terminate the application
 
-def read_status():
+def readStatus():
     global ssh_client, call_counter, latest_message
     pollper=0.1           # poll every 5 seconds
     logfreq=60          # log every 60 seconds
@@ -281,19 +313,19 @@ def read_status():
         call_counter = (call_counter+1) % maxcount
         if call_counter == 1: # log every ~ minute (once per maxcount)
             pass
-            # add_log("Mark")
+            # addLog("Mark")
 
         if call_counter %50 == 0:
-            get_relay8_status()
-            get_relay16_status()
-            get_cmd_status()
+            getRelay8Status()
+            getRelay16Status()
+            getCmdStatus()
             try:
                 if not ssh_client.transport.is_active():
                     ssh_client.connect()
             except:
                 ssh_client.connect()
 
-        #root.after(1000*pollper, read_status)
+        #root.after(1000*pollper, readStatus)
 
         while True: # read all available data from the focuser udp port
             try:
@@ -317,7 +349,7 @@ def callback8( relais):
         addsw=' OFF';
         action="%s%s"%(rname,addsw)
         if not confirm_action(action +" ?"):
-            add_log(action+" cancelled")
+            addLog(action+" cancelled")
             return False
         print("confirmed")
 
@@ -325,9 +357,9 @@ def callback8( relais):
     try:
         make_http_request(request)
     except:
-        #add_log("R8 command request failed: %s"%request)
+        #addLog("R8 command request failed: %s"%request)
         pass
-    get_relay8_status()
+    getRelay8Status()
 
 def callback16(relais):
     if relais['confirm'] and (relais['status'] == 'ON' or relais['type']=='TEMP'):
@@ -341,29 +373,29 @@ def callback16(relais):
         addsw="" if relais['type']=='TEMP' else ' OFF' if relais['status'] == 'ON' else ' ON';
         action="%s%s"%(rname,addsw)
         if not confirm_action(action +" ?"):
-            add_log(action+" cancelled")
+            addLog(action+" cancelled")
             return False
         print("confirmed")
 
     try:
         make_http_request(relais['url'])
     except:
-        #add_log("R16 command request failed: %s"%relais['url'])
+        #addLog("R16 command request failed: %s"%relais['url'])
         pass
-    url=invert_last_bit_in_url(relais['url'])
+    url=invertLastBitInUrl(relais['url'])
     #print(url)
     if relais['type']=='TEMP':
         sleep(.1)
         make_http_request(url)
 
-    get_relay16_status()
+    getRelay16Status()
 
-def get_cmd_status():
+def getCmdStatus():
     global oidup
 
     font='Helvetica'
     fontsize=10
-    covstatus=ssh_client.send_command("gstatus")
+    covstatus=ssh_client.sendCommand("gstatus")
 
     for com in cmds:
         cmds[com]['button'].config(state=tk.DISABLED if not oidup else tk.NORMAL)
@@ -383,29 +415,29 @@ def get_cmd_status():
             com['button'].config(fg='blue' if com['status'] == 'CLOSED' else 'green',
                                  text=com['name'][com['status']],
                                  command=lambda relais=com, cmd=com['cmd'][com['status']]:
-                                 remote_cmd(relais, cmd),
+                                 remoteCmd(relais, cmd),
                                  state=tk.DISABLED if (other == 1 or not covstatus) else tk.NORMAL,
                                  font=(font, fontsize))
             other=cov
             cov=bat
 
-def remote_cmd(relais, cmd):
+def remoteCmd(relais, cmd):
     if relais['confirm']:
         if not confirm_action(relais['name'][0]+' ?'):
-            add_log(relais['name'][0]+" cancelled")
+            addLog(relais['name'][0]+" cancelled")
             return False
         print("confirmed")
 
     if relais['remote']:
-        ssh_client.send_command(cmd)
-        add_log("sent "+ cmd)
-        get_cmd_status()
+        ssh_client.sendCommand(cmd)
+        addLog("sent "+ cmd)
+        getCmdStatus()
     else:
         syscom="/home/fmeyer/git/dulleutil/observatoire_moutherot/obslm.bash "+cmd
         process = subprocess.Popen(syscom, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        add_log("execd "+syscom)
+        addLog("execd "+syscom)
 
-def create_grid(items, rset):
+def createGrid(items, rset):
     font='Helvetica'
     fontsize=10
 
@@ -452,7 +484,7 @@ def create_grid(items, rset):
                 relay['button'] = tk.Button(frame, text=button_text, width=6, height=2,
                                fg='red' if relay['status']!=0 else 'green',
                                command=lambda cmd=relay['cmd'][relay['status']],
-                                            relais=relay: remote_cmd(relais, cmd),
+                                            relais=relay: remoteCmd(relais, cmd),
                                             font=(font, fontsize))
 
                 row=incpos+int((relay['position'])/3)
@@ -464,7 +496,7 @@ def create_grid(items, rset):
 
             buttons.append(relay['button'])
 
-def add_log(message):
+def addLog(message):
     global log_text,lock
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Get current timestamp in desired format
@@ -513,7 +545,7 @@ log_text.pack(padx=1, pady=1)
 log_text.config(state=tk.DISABLED)
 
 # Refresh button spanning 2 columns
-#refresh_button = tk.Button(top_frame, text="Refresh", command=read_status)
+#refresh_button = tk.Button(top_frame, text="Refresh", command=readStatus)
 #refresh_button.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
 # Frame to hold the grid of buttons
 #grid_frame = tk.Frame(root)
@@ -532,10 +564,10 @@ title_cmd.grid(row=1, columnspan=3)
 #title_cmd2 = tk.Label(grid_cmd2, text="Command Set #2", font=("Helvetica", 16, "bold"))
 #title_cmd2.grid(row=0)
 
-create_grid(relays_16.items(),16)
-create_grid(relays_8.items(),8)
-create_grid(cmds.items(),0)
-#create_grid(cmds2.items(),1)
+createGrid(relays_16.items(),16)
+createGrid(relays_8.items(),8)
+createGrid(cmds.items(),0)
+#createGrid(cmds2.items(),1)
 
 clock=checkItems(widget=tk.Label(grid_cmd, height=1, width=10, font=("Helvetica", 18)),row=0, col=0, span=3,color1='lightgreen', color2='yellow', period=10, label="Time")
 
@@ -550,23 +582,23 @@ clock=checkItems(widget=tk.Label(grid_cmd, height=1, width=10, font=("Helvetica"
 #focuser.grid(row=1, column=0,columnspan=3)
 
 focuser=checkItems(widget=tk.Label(grid_cmd, height=1, width=15, font=("Helvetica", 12)),row=1, col=0, span=3,color1='lightgreen', color2='#ccffcc', period=10, label="foc")
-pollR16=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=0, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="R16", address="192.168.1.28", port=80)
-pollOid=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=1, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="OID", address="192.168.1.26", port=22)
-pollPi3=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=2, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="PI3", address="192.168.1.27", port=22)
+pollR16=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=0, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="R16", address=r16IP, port=80)
+pollOid=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=1, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="OID", address=oidIP, port=22)
+pollPi3=checkItems(widget=tk.Label(grid_cmd, height=1, width=5, font=("Helvetica", 12)),row=2, col=2, span=1,color1='lightgreen',  color2='#ccffcc', period=301, label="PI3", address=pi3IP, port=22)
 
 # Quit button
-quit_button = tk.Button(root, text="Quit", command=quit_application)
+quit_button = tk.Button(root, text="Quit", command=quitApp)
 quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
 ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
 latest_message = "Focuser"
-udp_socket=init_udp_listener()
+udp_socket=initUDPListener()
 updates=updatesManager()
 
-processor_thread = threading.Thread(target=read_status)
+processor_thread = threading.Thread(target=readStatus)
 processor_thread.daemon = True
 processor_thread.start()
 updates.update()
-#read_status()
+#readStatus()
 root.mainloop()
