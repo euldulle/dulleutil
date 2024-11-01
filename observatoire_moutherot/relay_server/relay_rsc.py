@@ -11,58 +11,7 @@ import relay_rsc
 from tkinter import scrolledtext
 
 
-
 relays_16 = {
-    'Relay-06': {
-        'name': ['USB'],
-        'url': "",
-        'type': "SWITCH",
-        'position': 0,
-        'button': [],
-        'confirm': True,
-        'status': "OFF"
-        },
-
-    'Relay-12': {
-        'name': ['EQ8'],
-        'url': "",
-        'type': "SWITCH",
-        'position': 1,
-        'button': [],
-        'confirm': True,
-        'status': "OFF"
-        },
-
-    'Relay-07': {
-        'name': ['Oid'],
-        'url': "",
-        'type': "SWITCH",
-        'position': 2,
-        'button': [],
-        'confirm': True,
-        'status': "OFF"
-        },
-
-    'Relay-10': {
-        'name': ['DH'],
-        'url': "",
-        'type': "SWITCH",
-        'position': 3,
-        'button': [],
-        'confirm': False,
-        'status': "OFF"
-        },
-
-    'Relay-11': {
-        'name': ['CCD'],
-        'url': "",
-        'type': "SWITCH",
-        'position': 4,
-        'button': [],
-        'confirm': True,
-        'status': "OFF"
-        },
-
     'Relay-01': {
         'name': ['Sfw'],
         'position': 6,
@@ -113,6 +62,66 @@ relays_16 = {
         'status': "OFF"
         },
 
+    'Relay-06': {
+        'name': ['USB'],
+        'url': "",
+        'type': "SWITCH",
+        'position': 0,
+        'button': [],
+        'confirm': True,
+        'status': "OFF"
+        },
+
+    'Relay-07': {
+        'name': ['Oid'],
+        'url': "",
+        'type': "SWITCH",
+        'position': 2,
+        'button': [],
+        'confirm': True,
+        'status': "OFF"
+        },
+
+    'Relay-08': {
+        'name': ['DH'],
+        'url': "",
+        'type': "SWITCH",
+        'position': 3,
+        'button': [],
+        'confirm': False,
+        'status': "OFF"
+        },
+
+    'Relay-11': {
+        'name': ['CCD'],
+        'url': "",
+        'type': "SWITCH",
+        'position': 4,
+        'button': [],
+        'confirm': True,
+        'status': "OFF"
+        },
+
+    'Relay-12': {
+        'name': ['EQ8'],
+        'url': "",
+        'type': "SWITCH",
+        'position': 1,
+        'button': [],
+        'confirm': True,
+        'status': "OFF"
+        },
+
+    'Relay-13': {
+        'name': ['Opn','Open Roof'],
+        'url': "",
+        'type': "TEMP",
+        'position': 14,
+        'confirm': True,
+        'button': [],
+        'status': "OFF"
+        },
+
     'Relay-14': {
         'name': ['Clo','Close Roof'],
         'url': "",
@@ -131,17 +140,8 @@ relays_16 = {
         'confirm': False,
         'button': [],
         'status': "OFF"
-        },
-
-    'Relay-13': {
-        'name': ['Opn','Open Roof'],
-        'url': "",
-        'type': "TEMP",
-        'position': 14,
-        'confirm': True,
-        'button': [],
-        'status': "OFF"
         }
+
     }
 
 relays_8 = {
