@@ -43,7 +43,7 @@ relays_16 = {
         },
 
     'Relay-04': {
-        'name': ['Lpi3'],
+        'name': ['pi3'],
         'url': "",
         'type': "SWITCH",
         'position': 9,
@@ -53,7 +53,7 @@ relays_16 = {
         },
 
     'Relay-05': {
-        'name': ['Pi3'],
+        'name': ['LPi3'],
         'url': "",
         'type': "SWITCH",
         'position': 10,
