@@ -1,6 +1,7 @@
 #source /etc/bash_completion.d/siril-completion
 export SIRILRC="$HOME/.config/siril/sirilrc" # location of the siril bash cli resource file
 source $SIRILRC
+calibDir="/data/astrolab/Poseidon_ccd"
 #
 # Cosmétique (couleur, formattage...)
 #
@@ -204,20 +205,15 @@ srl_chkseq(){
     fi
 
     shift $((OPTIND-1))
-    if test -n "$1"; then
-        SRLWD=$1
+
+    if ! test -d "$SRLWD"; then # by default SRLWD is CWD
+        export SRLWD=$(pwd)
     fi
 
-    if test -z "$SRLWD"; then
-        SRLWD=$(pwd)
-    else
-        if ! test -d "$SRLWD"; then
-            echo "$SRLWD not a directory">&2
-            return 1
-        else
-            SRLWD=$(realpath $SRLWD)
-        fi
+    if test -d "$1"; then # supersedes SRLWD if arg 1 is a dir
+        export SRLWD=$(realpath $1)
     fi
+
     siril -s - <<ENDSIRIL >$SIRLOG/logsiril 2>&1
 cd $SRLWD
 chkseq
@@ -314,12 +310,12 @@ srl_mkmaster(){
     base=${1}
     inputbase=$SRLWD/${1}
     if test -f ${inputbase}_.seq; then
-        seqname="${inputbase}"_.seq
+        seqName="${inputbase}"_.seq
     else
         if test -f ${inputbase}.seq; then
-            seqname="$inputbase".seq
+            seqName="$inputbase".seq
         else 
-            splog "Error: No sequence $seqname\* found" 
+            splog "Error: No sequence $seqName\* found" 
             return 1
         fi
     fi
@@ -346,10 +342,10 @@ srl_mkmaster(){
                 return 1;;
         esac
     fi
-    green "Making master $imgtyp from $seqname -> $mastername"
+    green "Making master $imgtyp from $seqName -> $mastername"
     siril -s - <<ENDMKMASTER >$SIRLOG/logsiril 2>&1
 cd $SRLWD
-stack $seqname rej 3 3 -norm=$norm -out=$mastername
+stack $seqName rej 3 3 -norm=$norm -out=$mastername
 ENDMKMASTER
     ls -l $SRLWD/$mastername
     destfile=${SRLCAL}/$mastername
@@ -411,6 +407,33 @@ srl_wd(){
     fi
 }
 
+srl_calib(){ # sample call : srl_calib A3-Blue-30s-2x2_ FIXME Bias Dark Blue 
+    logfile=$SRLTMP/${FUNCNAME[0]}.log
+    splog "Running ${FUNCNAME[0]}, output to $logfile"
+    splog " calibrating $1 with $2 in dir $SRLWD"
+    exec 6>&1    # Lie le descripteur de fichier #6 avec stdout.
+                # Sauvegarde stdout.
+    #
+    exec >$logfile   # stdout remplace par outfile2
+    sirilScript=$SRLTMP/calib.ssc
+    cd $SRLWD
+    echo "cd $SRLWD" >$sirilScript
+    seqName="$1"
+    masterFlat="$SRLWD/$2"
+    masterBias="$calibDir/MasterBias-1x1"
+    masterDark="$calibDir/master_Dark-120-1x1-20C"
+    if test -n "$seqName" && test -f "$masterFlat"; then
+       echo "calibrate ${seqName} -bias=$masterBias -dark=$masterDark -flat=$masterFlat" >>$sirilScript
+    else
+        ls -l $seqName $masterFlat
+    fi
+    siril -s $sirilScript
+
+    srl_chkseq
+    exec 1>&6 6<&-
+    srl_seqsize pp_$seqName
+    }
+
 srl_flatcalib(){ # sample call : srl_flatcal A3-Blue-30s-2x2_ Flat-Blue
     logfile=$SRLTMP/${FUNCNAME[0]}.log
     splog "Running ${FUNCNAME[0]}, output to $logfile"
@@ -419,57 +442,90 @@ srl_flatcalib(){ # sample call : srl_flatcal A3-Blue-30s-2x2_ Flat-Blue
                  # Sauvegarde stdout.
     #
     exec >$logfile   # stdout remplace par outfile2
-    sirilscript=$SRLTMP/flatcalib.ssc
+    sirilScript=$SRLTMP/flatcalib.ssc
     cd $SRLWD
-    echo "cd $SRLWD" >$sirilscript
-    seqname="$1"
+    echo "cd $SRLWD" >$sirilScript
+    seqName="$1"
     masterflat="$2"
-    if test -n "$seqname" && test -f "$masterflat"; then
-        echo "calibrate ${seqname} -flat=$masterflat" >>$sirilscript
+    if test -n "$seqName" && test -f "$masterflat"; then
+        echo "calibrate ${seqName} -flat=$masterflat" >>$sirilScript
     fi
-    siril -s $sirilscript
+    siril -s $sirilScript
 
     srl_chkseq
     exec 1>&6 6<&-
-    srl_seqsize pp_$seqname
+    srl_seqsize pp_$seqName
+}
+
+srl_seqstarnet(){ # sample call : srl_seqstarnet A3-Blue-30s-2x2_ 
+    logfile=$SRLTMP/${FUNCNAME[0]}.log
+    splog "Running ${FUNCNAME[0]}, output to $logfile"
+    splog " calibrating $1 with $2 in dir $SRLWD"
+    exec 6>&1    # Lie le descripteur de fichier #6 avec stdout.
+                 # Sauvegarde stdout.
+    #
+    exec >$logfile   # stdout remplace par outfile2
+    sirilScript=$SRLTMP/flatcalib.ssc
+    cd $SRLWD
+    echo "cd $SRLWD" >$sirilScript
+    seqName="$1"
+    if test -n "$seqName"; then
+        echo "seqstarnet ${seqName} -stretch" >>$sirilScript
+    fi
+    siril -s $sirilScript
+
+    srl_chkseq
+    exec 1>&6 6<&-
 }
 
 srl_mkflat(){
     logfile=$SRLTMP/${FUNCNAME[0]}.log
     splog "Running ${FUNCNAME[0]}, output to $logfile" 
+    if ! test -d "$SRLWD"; then # by default SRLWD is CWD
+        export SRLWD=$(pwd)
+    fi
+
+    if test -d "$1"; then # supersedes SRLWD if arg 1 is a dir
+        export SRLWD=$(realpath $1)
+    fi
+    cd ${SRLWD}
+    srl_chkseq 
+
     splog " making flats in dir $SRLWD"
     exec 6>&1    # Lie le descripteur de fichier #6 avec stdout.
                  # Sauvegarde stdout.
     #
     exec >$logfile   # stdout remplace par outfile2
-
-    sirilscript=$SRLTMP/flat.ssc
-    rootdir=$1
-    if test -z "$rootdir"; then
-        rootdir=$SRLWD
-        if test -z "$rootdir"; then
-            rootdir=$(pwd)
-        fi
+    sirilScript=$SRLTMP/flat.ssc
+           
+    if ! test -d "$SRLWD"; then # by default SRLWD is CWD
+        export SRLWD=$(pwd)
     fi
-    cd ${rootdir}
 
-    splog " building siril script $sirilscript" >&2
-    echo "cd $rootdir" >$sirilscript
-    seqname=()
+    if test -d "$1"; then # supersedes SRLWD if arg 1 is a dir
+        export SRLWD=$(realpath $1)
+    fi
+    cd ${SRLWD}
+
+    splog " building siril script $sirilScript" >&2
+    echo "cd $SRLWD" >$sirilScript
+    seqName=()
+
     for i in Flat-*.seq; do
         seq=$(basename $i .seq)
-        seqname+=($seq)
+        seqName+=($seq)
         echo "stack ${seq} rej 3 3 -norm=mul"
-    done >>$sirilscript;
+    done >>$sirilScript;
 
-    siril -s $sirilscript
+    siril -s $sirilScript
     builtlist=""
     mkdir -p archives
     for i in Flat-*.seq; do
         seqroot=$(basename $i .seq)
         destmaster=$(echo $i | awk -F\- '{print $1 "-" $2}').fits
         builtlist="$builtlist "$destmaster
-        mv $rootdir/${seqroot}stacked.fits ${destmaster}
+        mv $SRLWD/${seqroot}stacked.fits ${destmaster}
+        chmod 444 ${destmaster}
     done
     /bin/ls -l $builtlist >&2
     exec 1>&6 6<&-
