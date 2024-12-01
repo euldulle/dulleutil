@@ -1,0 +1,12 @@
+[!p[?3;4l[4l>[0m(B[?1h=[H[2J[?12l[?25h
+Welcome to minicom 2.8
+
+OPTIONS: I18n 
+Port /dev/ttyUSB0, 08:47:28
+
+Press CTRL-A Z for help on special keys
+-1430.00000,    2910.00000, 704.00000,  83.00000,   -9.00000,   16.00000
+# sensor2:
+# acelX acelY acelZ giroX giroY giroZ
+-204    473     1354    101     -32     81
+
