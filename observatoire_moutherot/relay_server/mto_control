@@ -25,7 +25,7 @@ broadcast=network+".255"
 r8IP=network+".23"
 relay8_read="http://fmeyer:4so4xRg9@"+r8IP+"/relays.cgi"
 
-oidIP=network+".26"
+oidIP=network+".29"
 pi3IP=network+".27"
 r16IP=network+".28"
 
@@ -591,7 +591,7 @@ quit_button = tk.Button(root, text="Quit", command=quitApp)
 quit_button.grid(row=2, column=0, columnspan=3)
 # Initialize SSH client with SSH key authentication
 ssh_key_file = '/home/fmeyer/.ssh/obsm'
-ssh_client = SSHClient('oid', 22, 'fmeyer', ssh_key_file)
+ssh_client = SSHClient(oidIP, 22, 'fmeyer', ssh_key_file)
 latest_message = "Focuser"
 udp_socket=initUDPListener()
 updates=updatesManager()
