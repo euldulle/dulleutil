@@ -39,11 +39,17 @@ export OLM_ISERVER_LOG=$OLM_ILOGDIR/server.log
 export OLM_IFIFO=$OLM_IROOT/indififo
 export OLM_ISERVPIDFILE=$OLM_IRUN/indiserver.pid
 export OLM_ILOCALDRIVERS=$OLM_IROOT/indilocaldrivers
-export OLM_PYRSCFILE=$OLM_IROOT/gpio_filter_assignments.py
+export OLM_PYRSCFILE=$OLM_ROOT/bin/gpio_filter_assignments.py
 export OLM_O2SHARE="$OLM_ROOT/o2oid"
 export OLM_BATSTATUS=$OLM_ROOT/capstatus.txt
 export OLM_SEM_ACK_COV=$OLM_IROOT/ackcov
 
+mkdir -p $OLM_IRUN
+mkdir -p $OLM_ILOGDIR
+if ! test -p "$OLM_IFIFO"; then
+    rm -f "$OLM_IFIFO"
+    mkfifo "$OLM_IFIFO"
+fi
 #
 # fonction utilisee pour verifier que la machine sur laquelle s'execute
 # un script est bien celle attendue. A utiliser dans un script, par exemple :
