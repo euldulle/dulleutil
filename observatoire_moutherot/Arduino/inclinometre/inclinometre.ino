@@ -27,9 +27,12 @@ https://github.com/ElectronicCats/mpu6050/wiki
  */
 #include "WiFi.h"
 #include "AsyncUDP.h"
+#include "ADS1X15.h"
 char message[512];
 const char * ssid = "ed";
 const char * password = "gsin2hhlx48f6v25jlgz";
+const char * wrtSsid = "OpenWrt";
+const char * wrtPassword = "Auvma2TKF9gZZYmW";
 
 AsyncUDP udp;
 
@@ -41,6 +44,7 @@ AsyncUDP udp;
 MPU6050 mpu;
 //MPU6050 mpu(0x69); //Use for AD0 high
 //MPU6050 mpu(0x68, &Wire1); //Use for AD0 low, but 2nd Wire (TWI/I2C) object.
+ADS1115 ADS(0x48);
 
 /* OUTPUT FORMAT DEFINITION-------------------------------------------------------------------------------------------
    - Use "OUTPUT_READABLE_QUATERNION" for quaternion commponents in [w, x, y, z] format. Quaternion does not 
@@ -63,7 +67,7 @@ MPU6050 mpu;
    -  Use "OUTPUT_TEAPOT" for output that matches the InvenSense teapot demo. 
    -------------------------------------------------------------------------------------------------------------------------------*/ 
 //#define OUTPUT_READABLE_YAWPITCHROLL
-#define LED_BUILTIN 13
+#define LED_BUILTIN 4
 #define OUTPUT_READABLE_QUATERNION
 //#define OUTPUT_READABLE_EULER
 //#define OUTPUT_READABLE_REALACCEL
@@ -76,6 +80,7 @@ bool blinkState;
 /*---MPU6050 Control/Status Variables---*/
 bool DMPReady = false;  // Set true if DMP init was successful
 uint8_t MPUIntStatus;   // Holds actual interrupt status byte from MPU
+uint8_t connected=0;    // Wifi status
 uint8_t devStatus;      // Return status after each device operation (0 = success, !0 = error)
 uint16_t packetSize;    // Expected DMP packet size (default is 42 bytes)
 uint8_t FIFOBuffer[64]; // FIFO storage buffer
@@ -130,15 +135,30 @@ void setup() {
     //  while (Serial.available() && Serial.read()); // Empty buffer
     //  while (!Serial.available());                 // Wait for data
     while (Serial.available() && Serial.read()); // Empty buffer again
-
+    
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
-    if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        Serial.println("WiFi Failed");
-        while(1) {
-            delay(1000);
+    while(!connected) {
+      WiFi.begin(ssid, password);
+      if (WiFi.waitForConnectResult(5000) != WL_CONNECTED) {
+        Serial.println("OpenWRT WiFi Failed");
+        delay(1000);
+        
+        WiFi.begin(wrtSsid, wrtPassword);
+        if (WiFi.waitForConnectResult(5000) != WL_CONNECTED) {
+          Serial.println("ed WiFi Failed");
+          delay(5000);
+          }
+        else{
+          connected=1;
+          Serial.println("Connected (ed)");
+          }
+        }
+      else{
+        connected=1;
+        Serial.println("Connected (OpenWrt)");
         }
     }
+
     Serial.println("Wifi Ok");
 
     /* Initializate and configure the DMP*/
@@ -146,14 +166,20 @@ void setup() {
     devStatus = mpu.dmpInitialize();
 
     /* Supply your gyro offsets here, scaled for min sensitivity
-       /home/fmeyer/Arguino/calibration/gyrocalib */
-    mpu.setXGyroOffset(101);
-    mpu.setYGyroOffset(-32);
-    mpu.setZGyroOffset(81);
-    mpu.setXAccelOffset(-204);
-    mpu.setYAccelOffset(473);
-    mpu.setZAccelOffset(1354);
+       /home/fmeyer/Arguino/calibration/gyrocalib 
+       /home/fmeyer/Arguino/calibration/calibration.ino
+       acelX acelY acelZ giroX giroY giroZ
+       sensor 2 (RA connector) -204    473     1354    101     -32     81
+       sensor tak Rigth connector :-1489   -105    644     -35     -60     38
+       */
 
+    mpu.setXAccelOffset(-1489);
+    mpu.setYAccelOffset(-105);
+    mpu.setZAccelOffset(644);
+    mpu.setXGyroOffset(-35);
+    mpu.setYGyroOffset(-60);
+    mpu.setZGyroOffset(38);
+    
     /* Making sure it worked (returns 0 if so) */ 
     if (devStatus == 0) {
         // mpu.CalibrateAccel(6);  // Calibration Time: generate offsets and calibrate our MPU6050
@@ -267,7 +293,7 @@ void loop() {
         Serial.write(teapotPacket, 14);
         teapotPacket[11]++; // PacketCount, loops at 0xFF on purpose
 #endif
-        delay(20);
+        delay(100);
         /* Blink LED to indicate activity */
         blinkState = !blinkState;
         digitalWrite(LED_BUILTIN, blinkState);
