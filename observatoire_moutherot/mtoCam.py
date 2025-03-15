@@ -8,7 +8,8 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import paramiko
 import ffmpeg
-import pyaudio
+import os
+import time
 
 RTSP_URL1 = 'rtsp://thingino:thingino@192.168.1.160:554/ch0'
 RTSP_URL2 = 'rtsp://thingino:thingino@192.168.1.161:554/ch0'
@@ -40,23 +41,30 @@ EXTRA_COMMANDS = {
     "IRCut ON": "ircut 1",
     "Color": "color on",
     "BW": "color off",
+    "Set Home Here": ". /root/camrc && setHome",
+    "Soft Home": ". /root/camrc && softHome",
+    "Hard Home": ". /root/camrc && hardHome",
     "None ": False
 }
 
 class VideoStream:
     def __init__(self, url):
-        self.cap = cv2.VideoCapture(url)
-        if not self.cap.isOpened():
-            print(f"Failed to open stream: {url}")
+        self.url = url
+        self.cap = None
         self.frame = None
-        self.stopped = False
+        self.stopped = True
+        self.thread = None
 
     def start(self):
-        threading.Thread(target=self.update, args=()).start()
+        self.stopped = False
+        self.cap = cv2.VideoCapture(self.url)
+        self.thread = threading.Thread(target=self.update, daemon=True)
+        self.thread.start()
 
     def update(self):
+        """Continuously capture frames from the stream."""
         while not self.stopped:
-            if self.cap.isOpened():
+            if self.cap and self.cap.isOpened():
                 ret, frame = self.cap.read()
                 if ret:
                     self.frame = frame
@@ -65,77 +73,44 @@ class VideoStream:
         return self.frame
 
     def stop(self):
+        """Stop the video stream and release resources."""
         self.stopped = True
-        self.cap.release()
-
-class AudioStream:
-    def __init__(self, url):
-        self.url = url
-        self.p = pyaudio.PyAudio()
-        self.stream = None
-        self.stopped = False
-
-    def start(self):
-        self.stopped = False
-        threading.Thread(target=self.play_audio).start()
-
-    def play_audio(self):
-        process = (
-            ffmpeg.input(self.url)
-            .output("pipe:", format="s16le", acodec="pcm_s16le", ac=1, ar="44100")
-            .run_async(pipe_stdout=True)
-        )
-        self.stream = self.p.open(format=pyaudio.paInt16, channels=1, rate=44100, output=True)
-
-        while not self.stopped:
-            audio_data = process.stdout.read(4096)
-            if audio_data:
-                self.stream.write(audio_data)
-            else:
-                break
-
-        process.stdout.close()
-        self.stream.stop_stream()
-        self.stream.close()
-
-    def stop(self):
-        self.stopped = True
-        if self.stream is not None:
-            self.stream.stop_stream()
-            self.stream.close()
-        self.p.terminate()
-
+        if self.thread:
+            self.thread.join()  # Wait for the thread to finish
+        if self.cap:
+            self.cap.release()  # Release the video capture
+        self.cap = None
+        self.frame = None
 
 class VideoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("RTSP Stream Viewer with Controls")
-
+        self.restart=False
         # Video streams
         self.stream1 = VideoStream(RTSP_URL1)
         self.stream2 = VideoStream(RTSP_URL2)
         self.stream1.start()
         self.stream2.start()
-        # Start audio stream for camera 1
-        self.audio_stream = AudioStream(RTSP_URL1)
-        self.audio_stream.start()
-
         # Add Toggle Size and Quit buttons
         toggle_button = tk.Button(root, text="Toggle Size", command=self.toggle_size)
         toggle_button.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
         self.full_size = False
 
-        quit_button = tk.Button(root, text="Quit", command=self.on_closing)
+        quit_button = tk.Button(root, text="Quit", command=lambda: self.on_closing(restart_requested=False))
         quit_button.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+
+        restart_button = tk.Button(root, text="Restart", command=lambda: self.on_closing(restart_requested=True))
+        restart_button.grid(row=0, column=2, padx=5, pady=10)
 
         # Display video streams
         self.label1 = tk.Label(root)
-        self.label1.grid(row=1, column=0, columnspan=2)
+        self.label1.grid(row=1, column=0, columnspan=3)
         self.label1.bind("<Button-1>", lambda event: self.handle_click(event, CAM1_SSH, "cam1"))
         self.label1.bind("<Button-3>", lambda event: self.show_context_menu(event, CAM1_SSH))
 
         self.label2 = tk.Label(root)
-        self.label2.grid(row=2, column=0, columnspan=2)
+        self.label2.grid(row=2, column=0, columnspan=3)
         self.label2.bind("<Button-1>", lambda event: self.handle_click(event, CAM2_SSH, "cam2"))
         self.label2.bind("<Button-3>", lambda event: self.show_context_menu(event, CAM2_SSH))
 
@@ -230,14 +205,17 @@ class VideoApp:
     def toggle_size(self):
         self.full_size = not self.full_size
 
-    def on_closing(self):
+    def on_closing(self, restart_requested):
         self.stream1.stop()
         self.stream2.stop()
+        time.sleep(.1)
         self.root.destroy()
+        exit_code = 1 if restart_requested else 0
+        sys.exit(exit_code)
 
 # Run the application
 root = tk.Tk()
 app = VideoApp(root)
-root.protocol("WM_DELETE_WINDOW", app.on_closing)
+root.protocol("WM_DELETE_WINDOW", lambda: app.on_closing(restart_requested=False))
 root.mainloop()
 
