@@ -105,7 +105,8 @@ bool EulFocuser::initProperties()
     INDI::Focuser::initProperties();
 
     wiringPiSetupGpio () ;
-    wpMode = MODE_GPIO ;
+    //wpMode = MODE_GPIO ;
+    wpMode = WPI_MODE_GPIO;
     dir.nr=31;
     step.nr=33;
     enable.nr=22;
