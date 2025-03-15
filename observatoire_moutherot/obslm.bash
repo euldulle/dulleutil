@@ -534,7 +534,7 @@ olm_get_relay_state(){
     }
 
 olm_in_eq8_reinitpark(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     olm_in_stop eq8
     cp $OLM_HOME/.indi/ParkData.xml-west $OLM_HOME/.indi/ParkData.xml
     olm_in_start eq8
@@ -757,25 +757,15 @@ olm_fw_pwrstepper(){ # this is for non indi wheels,
     esac
 }
 
-
-export fsbase="/sys/class/gpio"
 traveltime=10
-export bat1=171
-export bat2=172
-export cov1=173
-export cov2=174
+export bat1=15
+export bat2=14
+export cov1=18
+export cov2=17
 export pinlist="$bat1 $bat2 $cov1 $cov2"
 
-glist (){
-    need_host "odroid" || return
-    for pin in $pinlist; do
-        echo -n "  $pin : "
-        cat $fsbase/gpio$pin/value
-    done
-}
-
 gstatus(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gtest cov
     echo -n "$? " > $OLM_BATSTATUS
     gtest bat
@@ -784,24 +774,24 @@ gstatus(){
 }
 
 ack(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gack cov
     gack bat
     touch $OLM_SEM_ACK_COV
     }
 
 ackcov(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gack cov
 }
 
 ackbat(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gack bat
 }
 
 gack(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     p1=$(eval echo \$${1}1)
     p2=$(eval echo \$${1}2)
     if test "$2" = "1"; then
@@ -814,7 +804,7 @@ gack(){
 }
 
 gtest(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     if test -z "$1"; then
         gstatus
         return
@@ -822,12 +812,12 @@ gtest(){
     p1=$(eval echo \$${1}1)
     p2=$(eval echo \$${1}2)
 
-    read a <$fsbase/gpio$p1/value
+    a=$(gpioget --numeric -a GPIO$p1)
     if test "$a" = "1"; then
         return 1
     fi
 
-    read a <$fsbase/gpio$p2/value
+    a=$(gpioget --numeric -a GPIO$p2)
     if test "$a" = "1"; then
         return 1
     fi
@@ -835,31 +825,34 @@ gtest(){
 }
 
 gclr (){
-    need_host "odroid" || return
-    pin=$fsbase/gpio$1
-    echo 0 |sudo tee $pin/value >/dev/null 
+    need_host "pi5" || return
+
+    pin="$1"
+    if test -z "$pin"; then
+        return 1
+    fi
+    gpioset GPIO$pin=0
 }
 
 gset (){
-    val=1
-    if test -n "$2"; then
-        val="$2"
+    need_host "pi5" || return
+
+    pin="$1"
+    if test -z "$pin"; then
+        return 1
     fi
-    
-    need_host "odroid" || return
-    pin=$fsbase/gpio$1
-    echo $val |sudo tee $pin/value >/dev/null
+    gpioset GPIO$pin=1
 }
 
 gstop(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     stopcov
     stopbat
     /bin/rm -f $OLM_SEM_ACK_COV
 }
 
 stopcov(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     killall sleep
     sleep .5
     gset $cov1 >/dev/null 2>&1
@@ -878,7 +871,7 @@ syncstatus(){
 }
 
 opencov(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gtest bat
     if test "$?" = 0; then
         gtest cov
@@ -896,7 +889,7 @@ opencov(){
 }
 
 openbat(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gtest cov
     if test "$?" = 0; then
         gtest bat
@@ -915,7 +908,7 @@ openbat(){
 
 
 closecov(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gtest bat
     if test "$?" = "0"; then
         gtest cov
@@ -934,7 +927,7 @@ closecov(){
 }
 
 closebat(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     gtest cov
     if test "$?" = 0; then
         gtest bat
@@ -953,7 +946,7 @@ closebat(){
 }
 
 stopbat(){
-    need_host "odroid" || return
+    need_host "pi5" || return
     killall sleep
     sleep .5
     gset $bat1 >/dev/null 2>&1
@@ -964,29 +957,12 @@ stopbat(){
 
 export gset gclr glist oppenbat opencov clrcov
 
-covinit(){
-    need_host "odroid" || return
-    for i in $pinlist; do
-        pin=$fsbase/gpio"$i"
-        if ! test -d $pin; then
-            echo $i |sudo tee -a $fsbase/export
-            echo out |sudo tee -a $pin/direction
-            echo $pin ready
-        else
-            echo $pin already ready
-        fi
-    done
-}
-
 # this is for non indi wheels:
-if test "$HOSTNAME" = "odroid"; then
+if test "$HOSTNAME" = "pi5"; then
     export olm_fw_fifoname=$(grep olm_fw_fifoname $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
     export olm_fw_statefile=$(grep olm_fw_statefile $OLM_PYRSCFILE |awk -F= '{print $2}'|tr -d '"')
 fi
-if test "$HOSTNAME" = "odroid"; then
-    if ! test -d $fsbase/gpio"$bat1"; then
-        covinit
-    fi
+if test "$HOSTNAME" = "pi5"; then
     syncstatus
 fi
 
