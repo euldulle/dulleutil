@@ -23,9 +23,10 @@ export OLM_SETTIMEOUT=5
 export OLM_R16TIMEOUT=60
 
 export OLM_NETWORK="192.168.1"
-export OLM_IHOST="$OLM_NETWORK.26"
-export OLM_R8IP="$OLM_NETWORK.23"
-export OLM_R16IP="$OLM_NETWORK.28"
+export OLM_IHOST="$OLM_NETWORK.26" # oid indi host
+export OLM_FHOST="$OLM_NETWORK.27" # pi3 focuser
+export OLM_R8IP="$OLM_NETWORK.23"  # relay8
+export OLM_R16IP="$OLM_NETWORK.28" # relay16
 export OLM_R8PORT=""
 
 export OLM_BASER8="http://fmeyer:4so4xRg9@${OLM_R8IP}${OLM_R8PORT}/relays.cgi"
@@ -423,15 +424,21 @@ olm_off_r8_full(){
     olm_log "    ${FUNCNAME[0]} : r8 shutdown complete"
 }
 
-olm_shutdown_indihost(){
+olm_shutdownIndiHost(){
     olm_log "    ${FUNCNAME[0]} : shutting down indi host $OLM_IHOST"
+    olm_indicmd "sudo shutdown"
+}
+
+olm_shutdownFocuserHost(){
+    olm_log "    ${FUNCNAME[0]} : shutting down indi host $OLM_FHOST"
     olm_indicmd "sudo shutdown"
 }
 
 olm_session_shutdown(){
     olm_log "    ${FUNCNAME[0]} : starting full shutdown"
-    (olm_shutdown_indihost)&disown
-    sleep 5
+    (olm_shutdownIndiHost) &disown
+    (olm_shutdownFocuserHost) &disown
+    sleep 10
     olm_off_r16_full
     olm_off_r8_full
     olm_log "    ${FUNCNAME[0]} : full shutdown completed"
@@ -760,10 +767,10 @@ olm_fw_pwrstepper(){ # this is for non indi wheels,
 
 export fsbase="/sys/class/gpio"
 traveltime=10
-export bat1=171
-export bat2=172
-export cov1=173
-export cov2=174
+export bat1=171 # pi5 15
+export bat2=172 # pi5 14
+export cov1=173 # pi5 18
+export cov2=174 # pi5 17
 export pinlist="$bat1 $bat2 $cov1 $cov2"
 
 glist (){
