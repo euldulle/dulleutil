@@ -1,0 +1,22 @@
+#!/bin/bash
+#ssh -M -S /tmp/cam1 -fnN cam1  >$err 2>&1
+#ssh -M -S /tmp/cam2 -fnN cam2  >$err 2>&1
+restart=1
+err="/home/fmeyer/logcam"
+if test -n "$1"; then 
+    err="/tmp/errmtocam"
+    echo "logging to $err"
+else
+    echo "no log"
+fi
+
+while test "$restart" = "1"; do
+    /usr/bin/mtoCam.py >/dev/null 2>&1 &
+    /usr/bin/mtoAudio >$err 2>&1
+    restart="$?"
+    killall -x mtoCam.py  >$err 2>&1
+    killall ffplay >$err 2>&1
+    killall -x mtoCam.py >$err 2>&1
+    killall ffplay >$err 2>&1
+    sleep 1
+done
