@@ -27,6 +27,12 @@ centerFocus=(maxFocus+minFocus)/2
 def sign(x):
     return (x > 0) - (x < 0)
 
+def stepper_off():
+    GPIO.output(o_enable_c14,GPIO.HIGH)
+
+def stepper_on():
+    GPIO.output(o_enable_c14,GPIO.LOW)
+
 def errprint(*args, **kwargs):
     global logfile
     print(*args, file=logfile, **kwargs,flush=True)
@@ -107,7 +113,7 @@ def do_move(usteps,direction):
     global step_scale, step_range, delay_step1, delay_step2, step_pos, old_dir, ustep_count, step_dir, udpsocket,logmsg
     if usteps==0:
         return
-    GPIO.output(o_enable_c14,GPIO.HIGH)
+    stepper_on()
 
     if (direction==OUTWARDS):
         # outwards increase backfocus
@@ -123,8 +129,7 @@ def do_move(usteps,direction):
         GPIO.output(o_step_c14, GPIO.LOW)
         sleep(delay_step2)
 
-    GPIO.output(o_enable_c14,GPIO.HIGH)
-    GPIO.output(o_enable_c14,GPIO.LOW)
+    stepper_off()
 
 def process_data(event):
     global shared_final, keycode, stdscr
@@ -159,9 +164,9 @@ def process_data(event):
     ustep_count=0
     steps_per_um=0.0104
     usteps_per_step=32
-    delay_step1=0.05/usteps_per_step
-    delay_step2=0.05/usteps_per_step
-    usteps_per_um=0.400
+    delay_step1=0.01/usteps_per_step
+    delay_step2=0.01/usteps_per_step
+    usteps_per_um=1.
     #
     #
     # GPIO pin assingnment
@@ -217,6 +222,7 @@ def process_data(event):
         elif keycode==3 or keycode == 113 or keycode == 81: # ctrl-c or q or Q
             #pwr_stepper(ts_drv_addr, OFF)
             event.set() # telling everybody to vacate
+            stepper_off()
             sys.exit()
 
             break

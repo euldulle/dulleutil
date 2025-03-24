@@ -5,6 +5,11 @@ import RPi.GPIO as GPIO
 import curses
 #from mx import DateTime
 from gpio_filter_assignments import *
+def stepper_on():
+    GPIO.output(o_enable_c14,GPIO.LOW)
+
+def stepper_off():
+    GPIO.output(o_enable_c14,GPIO.HIGH)
 
 stdscr = curses.initscr()
 try:
@@ -26,11 +31,11 @@ step_inc=1
 old_dir=1
 step_pos=0
 ustep_count=0
-steps_per_um=0.0104
+steps_per_um=0.104
 usteps_per_step=32
 delay_step=0.01/usteps_per_step
 usteps_per_um=steps_per_um*usteps_per_step
-backlash_param=float(5*usteps_per_step)
+backlash_param=float(32*usteps_per_step)
 backlash_param=250
 #
 #
@@ -99,7 +104,7 @@ _thread.start_new_thread(keypress, ())
 def do_move():
     global step_scale, step_range, step_inc, delay_step, step_pos, backlash_param, old_dir, ustep_count, step_dir
 
-    GPIO.output(o_enable_c14,GPIO.HIGH)
+    stepper_on()
 
     count=usteps_per_um*step_scale[step_range]
     if old_dir!=step_inc:
@@ -109,7 +114,7 @@ def do_move():
         GPIO.output(o_dir_c14, GPIO.LOW)
     else:
         GPIO.output(o_dir_c14, GPIO.HIGH)
-
+    f.write("count %f\n"%count)
     while count>0:
         count=count-1
         GPIO.output(o_step_c14, GPIO.HIGH)
@@ -118,14 +123,14 @@ def do_move():
         sleep(delay_step)
         ustep_count=ustep_count+step_inc
     step_pos=(step_pos+step_dir*step_inc*step_scale[step_range])
-    GPIO.output(o_enable_c14,GPIO.HIGH)
-    GPIO.output(o_enable_c14,GPIO.LOW)
-
+    stepper_off()
+    f.flush()
 #pwr_stepper(ts_drv_addr, ON)
 #
 #
 #
 # n=DateTime.now()
+f=open("/tmp/logcount", "a+");
 while True:
     if keycode==27:
         keycode=ord(getch())
@@ -150,6 +155,7 @@ while True:
         stdscr.keypad(0);
         curses.echo()
         curses.endwin()
+        stepper_off()
         GPIO.cleanup()
         #pwr_stepper(ts_drv_addr, OFF)
         sys.exit()
