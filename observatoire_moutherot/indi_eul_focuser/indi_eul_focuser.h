@@ -39,6 +39,7 @@ private:
     static void udp_listener(int port);
 
    typedef struct {
+        struct gpiod_line *line;
         int nr;
         int state;
         char name[16];
@@ -76,5 +77,7 @@ private:
     bool do_move(FocusDirection newdir, uint32_t microns);
     uint32_t getPosition(void);
     static void readPosition(void);
+    struct gpiod_chip *chip;
+    struct gpiod_line_request_config config;
 
 };

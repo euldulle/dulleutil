@@ -8,7 +8,7 @@
 #include <arpa/inet.h>  // For socket functions
 #include <cmath>
 
-#include <wiringPi.h>
+#include <gpiod.h>
 #include "libindi/indicom.h"
 
 #include "config.h"
@@ -16,6 +16,11 @@
 
 #define INFOCUS (0)
 #define OUTFOCUS (1)
+
+#define DIR (24)
+#define STEP (23)
+#define ENABLE (25)
+#define GPIOCHIP "/dev/gpiochip4"
 
 std::mutex data_mutex;  // Mutex to protect shared data
 
@@ -104,18 +109,58 @@ bool EulFocuser::initProperties()
     // initialize the parent's properties first
     INDI::Focuser::initProperties();
 
-    wiringPiSetupGpio () ;
-    //wpMode = MODE_GPIO ;
-    wpMode = WPI_MODE_GPIO;
-    dir.nr=31;
-    step.nr=33;
-    enable.nr=22;
-    pinMode(step.nr,OUTPUT);
-    pinMode(dir.nr,OUTPUT);
-    pinMode(enable.nr,OUTPUT);
+    DEBUG(INDI::Logger::DBG_SESSION, "startin gpio settings ");
+    chip = gpiod_chip_open_lookup(GPIOCHIP);
+    if(!chip) {
+        perror("gpiod_chip_open");
+        DEBUG(INDI::Logger::DBG_SESSION, "chip open failed");
+    }
+    else {
+        DEBUG(INDI::Logger::DBG_SESSION, "chip open ok");
+    }
+
+    dir.nr=DIR;
+    dir.line=gpiod_chip_get_line(chip, dir.nr);
+    if (dir.line==NULL){
+        DEBUG(INDI::Logger::DBG_SESSION, "dir line failed");
+    }
+    else{
+        DEBUG(INDI::Logger::DBG_SESSION, "dir line ok");
+        if(gpiod_line_request_output(dir.line, "eulfocuser", 0)<0){
+            perror("req dir");
+        }
+    }
+
+    step.nr=STEP;
+    step.line=gpiod_chip_get_line(chip, step.nr);
+    if (step.line==NULL){
+        DEBUG(INDI::Logger::DBG_SESSION, "step line failed");
+    }
+    else{
+        DEBUG(INDI::Logger::DBG_SESSION, "step line ok");
+        if(gpiod_line_request_output(step.line, "eulfocuser", 0)<0){
+            perror("req step");
+        }
+    }
+
+    enable.nr=ENABLE;
+    enable.line=gpiod_chip_get_line(chip, enable.nr);
+    if (enable.line==NULL){
+        DEBUG(INDI::Logger::DBG_SESSION, "enable line failed");
+    }
+    else{
+        DEBUG(INDI::Logger::DBG_SESSION, "enable line ok");
+        if(gpiod_line_request_output(enable.line, "eulfocuser", 0)<0){
+            perror("enable step");
+        }
+    }
+
+
     snprintf(dir.name,3,"DIR");
     snprintf(step.name,4, "STEP");
     snprintf(enable.name, 4, "ENAB");
+
+    DEBUG(INDI::Logger::DBG_SESSION, "gpio settings ok ");
 
     // TODO: Add any custom properties you need here.
 
@@ -382,7 +427,13 @@ bool EulFocuser::gprint(gpin pin){
 }
 
 bool EulFocuser::gwrite(gpin *pin, int state ){
-    digitalWrite(pin->nr, state);
+    int err;
+    err=gpiod_line_set_value(pin->line, state);
+    if(err!=0){
+        fprintf(stderr,"gwrite error pin %d reqstate %d errno %d \n", pin->nr, err, state);
+        perror("gwrite");
+    }
+
     pin->state=state;
     //gprint(*pin);
     return true;
@@ -399,12 +450,15 @@ bool EulFocuser::gset(gpin *pin){
 }
 
 int EulFocuser::gread(gpin *pin){
-    pin->state=digitalRead(pin->nr);
+    // pin->state=digitalRead(pin->nr);
+    // FIXME wiringpi -> libgpiod
     return pin->state;
 }
 
 bool EulFocuser::gtoggle(gpin *pin){
-    gwrite(pin, !gread(pin));
+    // gwrite(pin, !gread(pin));
+    // FIXME wiringpi -> libgpiod
+    pin->state=pin->state;
     return true;
 }
 
