@@ -13,8 +13,8 @@ find_package(Nova REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(GSL REQUIRED)
 
-set(GPIO_LIBRARIES "wiringPi.so")
-set(GPIO_INCLUDE_DIR "/usr/include/wiringpi2/")
+set(GPIO_LIBRARIES "libgpiod.so")
+set(GPIO_INCLUDE_DIR "/usr/include/")
 # these will be used to set the version number in config.h and our driver's xml file
 set(CDRIVER_VERSION_MAJOR 1)
 set(CDRIVER_VERSION_MINOR 2)
